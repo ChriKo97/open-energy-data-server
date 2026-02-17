@@ -49,6 +49,7 @@ class BaseCrawler:
 
         self.config["db_uri"] = config["db_uri"].format(DBNAME=schema_name)
         self.engine = create_engine(self.config["db_uri"], pool_pre_ping=True)
+        self.schema_name = schema_name
         self.create_schema(schema_name)
 
     def create_schema(self, schema_name: str) -> None:

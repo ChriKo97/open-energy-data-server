@@ -122,7 +122,7 @@ def psql_insert_copy(table, conn, keys: list[str], data_iter):
         cur.copy_expert(sql=sql, file=s_buf)
 
 
-def build_dataframe(engine, request: dict, write_lat_lon: bool = True):
+def build_dataframe(engine, request: dict, schema_name: str, write_lat_lon: bool = True):
     filename = f"{request['year']}_{request['month']}_{request['day'][0]}-{request['month']}_{request['day'][-1]}_ecmwf.zip"
     file_path = TEMP_DIR / filename
     filename = "2022_01_0-01_1_ecmwf.grb"
@@ -176,6 +176,7 @@ def build_dataframe(engine, request: dict, write_lat_lon: bool = True):
             weather_data.to_sql(
                 "ecmwf",
                 con=engine,
+                schema=schema_name,
                 if_exists="append",
                 chunksize=10000,
                 method=psql_insert_copy,
@@ -185,7 +186,7 @@ def build_dataframe(engine, request: dict, write_lat_lon: bool = True):
                 "no postgresql? - could not write using psql_insert_copy - using multi method"
             )
             weather_data.to_sql(
-                "ecmwf", con=engine, if_exists="append", chunksize=10000
+                "ecmwf", con=engine, schema=schema_name, if_exists="append", chunksize=10000
             )
 
     nuts3 = gpd.read_file(NUTS_PATH)
@@ -216,6 +217,7 @@ def build_dataframe(engine, request: dict, write_lat_lon: bool = True):
         weather_data.to_sql(
             "ecmwf_eu",
             con=engine,
+            schema=schema_name,
             if_exists="append",
             chunksize=10000,
             method=psql_insert_copy,
@@ -224,7 +226,7 @@ def build_dataframe(engine, request: dict, write_lat_lon: bool = True):
         log.error(
             "no postgresql? - could not write using psql_insert_copy - using multi method"
         )
-        weather_data.to_sql("ecmwf_eu", con=engine, if_exists="append", chunksize=10000)
+        weather_data.to_sql("ecmwf_eu", con=engine, schema=schema_name, if_exists="append", chunksize=10000)
 
     # Delete files locally to save space
     for file in Path(file_path.parent).rglob(file_path.name + "*"):
@@ -305,7 +307,7 @@ class EcmwfCrawler(ContinuousCrawler):
         TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
     def get_latest_data(self) -> datetime:
-        query = text("select max(time) from ecmwf")
+        query = text(f"SELECT MAX(time) FROM {self.schema_name}.ecmwf")
         try:
             with self.engine.connect() as conn:
                 return conn.execute(query).scalar() or TEMPORAL_START
@@ -314,7 +316,7 @@ class EcmwfCrawler(ContinuousCrawler):
             return TEMPORAL_START
 
     def get_first_data(self) -> datetime:
-        query = text("select min(time) from ecmwf")
+        query = text(f"SELECT MIN(time) FROM {self.schema_name}.ecmwf")
         try:
             with self.engine.connect() as conn:
                 return conn.execute(query).scalar() or TEMPORAL_START
@@ -323,8 +325,8 @@ class EcmwfCrawler(ContinuousCrawler):
             return TEMPORAL_START
 
     def create_hypertable_if_not_exists(self) -> None:
-        self.create_single_hypertable_if_not_exists("ecmwf", "time")
-        self.create_single_hypertable_if_not_exists("ecmwf_eu", "time")
+        self.create_single_hypertable_if_not_exists(f"{self.schema_name}.ecmwf", "time")
+        self.create_single_hypertable_if_not_exists(f"{self.schema_name}.ecmwf_eu", "time")
 
     def crawl_from_to(self, begin: datetime, end: datetime):
         """Crawls data from begin (inclusive) until end (exclusive)
@@ -355,7 +357,7 @@ class EcmwfCrawler(ContinuousCrawler):
             request = single_day_request(begin)
             log.info(f"The current request running: {request}")
             save_ecmwf_request_to_file(request, self.ecmwf_client)
-            build_dataframe(self.engine, request)
+            build_dataframe(self.engine, request, self.schema_name)
             begin = self.get_latest_data()
 
         dates = []
@@ -365,7 +367,7 @@ class EcmwfCrawler(ContinuousCrawler):
         for request in request_list_from_dates(dates):
             log.info(f"The current request running: {request}")
             save_ecmwf_request_to_file(request, self.ecmwf_client)
-            build_dataframe(self.engine, request)
+            build_dataframe(self.engine, request, self.schema_name)
 
 
 if __name__ == "__main__":

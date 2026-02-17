@@ -103,15 +103,17 @@ class FWCrawler(DownloadOnceCrawler):
         )
 
         df["Min Netzgröße"] = df.apply(
-            lambda row: 0
-            if str(row["Min Netzgröße"]).startswith("b")
-            else row["Min Netzgröße"],
+            lambda row: (
+                0 if str(row["Min Netzgröße"]).startswith("b") else row["Min Netzgröße"]
+            ),
             axis=1,
         )
         df["Max Netzgröße"] = df.apply(
-            lambda row: row["Max Netzgröße"]
-            if str(row["Max Netzgröße"]).startswith("b")
-            else row["Max Netzgröße"],
+            lambda row: (
+                row["Max Netzgröße"]
+                if str(row["Max Netzgröße"]).startswith("b")
+                else row["Max Netzgröße"]
+            ),
             axis=1,
         )
 
@@ -119,9 +121,9 @@ class FWCrawler(DownloadOnceCrawler):
             lambda x: None if "größer" in x else x.split("-")[0].strip()
         )
         df["Max Netzgröße"] = df[column_name4].apply(
-            lambda x: x.replace("bis", "").strip()
-            if "bis" in x
-            else x.split("-")[-1].strip()
+            lambda x: (
+                x.replace("bis", "").strip() if "bis" in x else x.split("-")[-1].strip()
+            )
         )
         df["Max Netzgröße"] = df["Max Netzgröße"].apply(
             lambda x: "unlimited" if "".startswith("g") else x
@@ -134,17 +136,21 @@ class FWCrawler(DownloadOnceCrawler):
         df["Max Netzgröße"] = pd.to_numeric(df["Max Netzgröße"], errors="coerce")
 
         df["Min Netzgröße"] = df[column_name4].apply(
-            lambda x: 0
-            if "bis" in x
-            else (x if "größer" in x else x.split("-")[0].strip())
-            .replace("größer", "")
-            .replace("MW", "")
-            .strip()
+            lambda x: (
+                0
+                if "bis" in x
+                else (x if "größer" in x else x.split("-")[0].strip())
+                .replace("größer", "")
+                .replace("MW", "")
+                .strip()
+            )
         )
         df["Max Netzgröße"] = df[column_name4].apply(
-            lambda x: x
-            if "bis" in x
-            else ("unlimited" if "größer" in x else x.split("-")[-1].strip())
+            lambda x: (
+                x
+                if "bis" in x
+                else ("unlimited" if "größer" in x else x.split("-")[-1].strip())
+            )
         )
 
         df["Max Netzgröße"] = (
@@ -161,16 +167,20 @@ class FWCrawler(DownloadOnceCrawler):
         )
         df["Min EE & KN"] = df["Min EE & KN"].str.replace(",", ".").str.strip()
         df["Min EE & KN"] = df[column_name7].apply(
-            lambda x: None
-            if (isinstance(x, str) and ("bis" in x or x.strip().startswith("<")))
-            else x.split("-")[0].strip()
+            lambda x: (
+                None
+                if (isinstance(x, str) and ("bis" in x or x.strip().startswith("<")))
+                else x.split("-")[0].strip()
+            )
         )
         df["Max EE & KN"] = df[column_name7].apply(
-            lambda x: x.replace("bis", "").strip()
-            if "bis" in x
-            else x.strip()[1:].strip()
-            if (isinstance(x, str) and x.strip().startswith("<"))
-            else x.split("-")[-1].strip()
+            lambda x: (
+                x.replace("bis", "").strip()
+                if "bis" in x
+                else x.strip()[1:].strip()
+                if (isinstance(x, str) and x.strip().startswith("<"))
+                else x.split("-")[-1].strip()
+            )
         )
         df["Max EE & KN"] = (
             df["Max EE & KN"].str.replace("%", "").str.replace(",", ".").str.strip()

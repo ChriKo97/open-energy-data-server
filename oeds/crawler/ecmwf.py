@@ -122,7 +122,9 @@ def psql_insert_copy(table, conn, keys: list[str], data_iter):
         cur.copy_expert(sql=sql, file=s_buf)
 
 
-def build_dataframe(engine, request: dict, schema_name: str, write_lat_lon: bool = True):
+def build_dataframe(
+    engine, request: dict, schema_name: str, write_lat_lon: bool = True
+):
     filename = f"{request['year']}_{request['month']}_{request['day'][0]}-{request['month']}_{request['day'][-1]}_ecmwf.zip"
     file_path = TEMP_DIR / filename
     filename = "2022_01_0-01_1_ecmwf.grb"
@@ -186,7 +188,11 @@ def build_dataframe(engine, request: dict, schema_name: str, write_lat_lon: bool
                 "no postgresql? - could not write using psql_insert_copy - using multi method"
             )
             weather_data.to_sql(
-                "ecmwf", con=engine, schema=schema_name, if_exists="append", chunksize=10000
+                "ecmwf",
+                con=engine,
+                schema=schema_name,
+                if_exists="append",
+                chunksize=10000,
             )
 
     nuts3 = gpd.read_file(NUTS_PATH)
@@ -226,7 +232,13 @@ def build_dataframe(engine, request: dict, schema_name: str, write_lat_lon: bool
         log.error(
             "no postgresql? - could not write using psql_insert_copy - using multi method"
         )
-        weather_data.to_sql("ecmwf_eu", con=engine, schema=schema_name, if_exists="append", chunksize=10000)
+        weather_data.to_sql(
+            "ecmwf_eu",
+            con=engine,
+            schema=schema_name,
+            if_exists="append",
+            chunksize=10000,
+        )
 
     # Delete files locally to save space
     for file in Path(file_path.parent).rglob(file_path.name + "*"):
@@ -326,7 +338,9 @@ class EcmwfCrawler(ContinuousCrawler):
 
     def create_hypertable_if_not_exists(self) -> None:
         self.create_single_hypertable_if_not_exists(f"{self.schema_name}.ecmwf", "time")
-        self.create_single_hypertable_if_not_exists(f"{self.schema_name}.ecmwf_eu", "time")
+        self.create_single_hypertable_if_not_exists(
+            f"{self.schema_name}.ecmwf_eu", "time"
+        )
 
     def crawl_from_to(self, begin: datetime, end: datetime):
         """Crawls data from begin (inclusive) until end (exclusive)
@@ -353,7 +367,9 @@ class EcmwfCrawler(ContinuousCrawler):
         # as the time is stored without time zone, we check for 0
 
         if begin.hour != 0:
-            log.info(f"Creating request for single day because the begin date hour is at {begin.hour}")
+            log.info(
+                f"Creating request for single day because the begin date hour is at {begin.hour}"
+            )
             request = single_day_request(begin)
             log.info(f"The current request running: {request}")
             save_ecmwf_request_to_file(request, self.ecmwf_client)

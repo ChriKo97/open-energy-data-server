@@ -350,10 +350,10 @@ class EcmwfCrawler(ContinuousCrawler):
 
         # the requests are build from 00:00 - 23:00 for each day
         # however, for recent dates the cds API delivers data up until the latest hour of the day it can deliver
-        # that is why a check is necessary to first make sure that the database has dates up until 23:00
+        # as the time is stored without time zone, we check for 0
 
-        if begin.hour != 23:
-            log.info("Creating request for single day")
+        if begin.hour != 0:
+            log.info(f"Creating request for single day because the begin date hour is at {begin.hour}")
             request = single_day_request(begin)
             log.info(f"The current request running: {request}")
             save_ecmwf_request_to_file(request, self.ecmwf_client)

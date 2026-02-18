@@ -13,7 +13,6 @@ from pathlib import Path
 import cdsapi
 import geopandas as gpd
 import pandas as pd
-import swifter  # noqa: F401
 import xarray as xr
 from shapely.geometry import Point
 from sqlalchemy import text

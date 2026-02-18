@@ -17,3 +17,6 @@ shapes
 config.yml
 data/pgadmin
 data/open-data-ha
+*.zip
+*.grib
+*.idx

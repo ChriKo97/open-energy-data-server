@@ -13,6 +13,7 @@ from pathlib import Path
 import cdsapi
 import geopandas as gpd
 import pandas as pd
+import requests
 import xarray as xr
 from shapely.geometry import Point
 from sqlalchemy import text
@@ -42,9 +43,10 @@ from oeds.base_crawler import (
 log = logging.getLogger("ecmwf")
 
 # path of nuts file
-# downloaded from
+# you can also downloaded it from
 # https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics
-NUTS_PATH = Path(__file__).parent.parent / "shapes/NUTS_RG_01M_2021_4326.shp"
+NUTS_PATH = Path(__file__).parent.parent / "shapes/NUTS_RG_01M_2021_4326.geojson"
+NUTS_URL = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_01M_2021_4326.geojson"
 TEMP_DIR = Path(__file__).parent.parent / "ecmwf_grb_files"
 
 # coords for europe according to:
@@ -61,6 +63,23 @@ weather_variables = [
 ]
 
 TEMPORAL_START = datetime(2022, 1, 1)
+
+
+def get_nuts_geodataframe() -> gpd.GeoDataFrame:
+    """Downloads NUTS regions GeoJSON from GISCO API if not cached locally.
+
+    Returns a GeoDataFrame with NUTS_ID and geometry columns.
+    """
+    if not NUTS_PATH.exists():
+        log.info("Downloading NUTS shapefile from GISCO API...")
+        response = requests.get(NUTS_URL)
+        response.raise_for_status()
+        NUTS_PATH.write_bytes(response.content)
+        log.info(f"NUTS GeoJSON saved to {NUTS_PATH}")
+
+    nuts = gpd.read_file(NUTS_PATH)
+    # use only nuts_id and coordinates from nuts file so fewer columns have to be joined
+    return nuts.loc[:, ["NUTS_ID", "geometry"]].set_index("NUTS_ID")
 
 
 def create_table(engine):
@@ -190,10 +209,7 @@ def build_dataframe(engine, request: dict, write_lat_lon: bool = True):
                 chunksize=10000,
             )
 
-    nuts3 = gpd.read_file(NUTS_PATH)
-    # use only nuts_id and coordinates from nuts file so fewer columns have to be joined
-    nuts3 = nuts3.loc[:, ["NUTS_ID", "geometry"]]
-    nuts3 = nuts3.set_index("NUTS_ID")
+    nuts3 = get_nuts_geodataframe()
     weather_data = weather_data.reset_index()
     weather_data["coords"] = list(
         zip(weather_data["longitude"], weather_data["latitude"])

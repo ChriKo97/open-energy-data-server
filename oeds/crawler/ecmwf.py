@@ -56,7 +56,7 @@ weather_variables = [
     "10m_u_component_of_wind",
     "10m_v_component_of_wind",
     "2m_temperature",
-    "total_precipitation ",
+    "total_precipitation",
     "surface_net_solar_radiation",
 ]
 

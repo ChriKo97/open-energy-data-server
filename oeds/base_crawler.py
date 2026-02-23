@@ -48,7 +48,8 @@ class BaseCrawler:
         self.config = config.copy()
         self.config["db_uri"] = config["db_uri"].format(DBNAME=schema_name)
         self.engine = create_engine(self.config["db_uri"], pool_pre_ping=True)
-        self._register_search_path(schema_name)
+        if self.engine.url.drivername.startswith("postgresql"):
+            self._register_search_path(schema_name)
         self.create_schema(schema_name)
 
     def _register_search_path(self, schema_name: str) -> None:

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TypedDict
 
 import yaml
-from sqlalchemy import Engine, create_engine, text
+from sqlalchemy import Engine, create_engine, event, text
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +46,21 @@ class BaseCrawler:
         if "db_uri" not in config.keys():
             raise ValueError("Please provide a 'db_uri' in the config")
         self.config = config.copy()
-
         self.config["db_uri"] = config["db_uri"].format(DBNAME=schema_name)
         self.engine = create_engine(self.config["db_uri"], pool_pre_ping=True)
+        if self.engine.url.drivername.startswith("postgresql"):
+            self._register_search_path(schema_name)
         self.create_schema(schema_name)
+
+    def _register_search_path(self, schema_name: str) -> None:
+        """Ensures search_path is set on every connection from the pool,
+        so unqualified table names resolve to the correct schema."""
+
+        @event.listens_for(self.engine, "connect")
+        def set_search_path(dbapi_conn, conn_record) -> None:
+            cursor = dbapi_conn.cursor()
+            cursor.execute(f"SET search_path TO {schema_name}")
+            cursor.close()
 
     def create_schema(self, schema_name: str) -> None:
         if self.engine.url.drivername.startswith("postgresql"):

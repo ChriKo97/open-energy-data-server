@@ -13,7 +13,7 @@ from pathlib import Path
 import cdsapi
 import geopandas as gpd
 import pandas as pd
-import swifter  # noqa: F401
+import requests
 import xarray as xr
 from shapely.geometry import Point
 from sqlalchemy import text
@@ -43,9 +43,10 @@ from oeds.base_crawler import (
 log = logging.getLogger("ecmwf")
 
 # path of nuts file
-# downloaded from
+# you can also downloaded it from
 # https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics
-NUTS_PATH = Path(__file__).parent.parent / "shapes/NUTS_RG_01M_2021_4326.shp"
+NUTS_PATH = Path(__file__).parent.parent / "shapes/NUTS_RG_01M_2021_4326.geojson"
+NUTS_URL = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_01M_2021_4326.geojson"
 TEMP_DIR = Path(__file__).parent.parent / "ecmwf_grb_files"
 
 # coords for europe according to:
@@ -57,11 +58,28 @@ weather_variables = [
     "10m_u_component_of_wind",
     "10m_v_component_of_wind",
     "2m_temperature",
-    "total_precipitation ",
+    "total_precipitation",
     "surface_net_solar_radiation",
 ]
 
 TEMPORAL_START = datetime(2022, 1, 1)
+
+
+def get_nuts_geodataframe() -> gpd.GeoDataFrame:
+    """Downloads NUTS regions GeoJSON from GISCO API if not cached locally.
+
+    Returns a GeoDataFrame with NUTS_ID and geometry columns.
+    """
+    if not NUTS_PATH.exists():
+        log.info("Downloading NUTS shapefile from GISCO API...")
+        response = requests.get(NUTS_URL)
+        response.raise_for_status()
+        NUTS_PATH.write_bytes(response.content)
+        log.info(f"NUTS GeoJSON saved to {NUTS_PATH}")
+
+    nuts = gpd.read_file(NUTS_PATH)
+    # use only nuts_id and coordinates from nuts file so fewer columns have to be joined
+    return nuts.loc[:, ["NUTS_ID", "geometry"]].set_index("NUTS_ID")
 
 
 def create_table(engine):
@@ -185,13 +203,13 @@ def build_dataframe(engine, request: dict, write_lat_lon: bool = True):
                 "no postgresql? - could not write using psql_insert_copy - using multi method"
             )
             weather_data.to_sql(
-                "ecmwf", con=engine, if_exists="append", chunksize=10000
+                "ecmwf",
+                con=engine,
+                if_exists="append",
+                chunksize=10000,
             )
 
-    nuts3 = gpd.read_file(NUTS_PATH)
-    # use only nuts_id and coordinates from nuts file so fewer columns have to be joined
-    nuts3 = nuts3.loc[:, ["NUTS_ID", "geometry"]]
-    nuts3 = nuts3.set_index("NUTS_ID")
+    nuts3 = get_nuts_geodataframe()
     weather_data = weather_data.reset_index()
     weather_data["coords"] = list(
         zip(weather_data["longitude"], weather_data["latitude"])
@@ -224,7 +242,12 @@ def build_dataframe(engine, request: dict, write_lat_lon: bool = True):
         log.error(
             "no postgresql? - could not write using psql_insert_copy - using multi method"
         )
-        weather_data.to_sql("ecmwf_eu", con=engine, if_exists="append", chunksize=10000)
+        weather_data.to_sql(
+            "ecmwf_eu",
+            con=engine,
+            if_exists="append",
+            chunksize=10000,
+        )
 
     # Delete files locally to save space
     for file in Path(file_path.parent).rglob(file_path.name + "*"):
@@ -305,7 +328,7 @@ class EcmwfCrawler(ContinuousCrawler):
         TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
     def get_latest_data(self) -> datetime:
-        query = text("select max(time) from ecmwf")
+        query = text("SELECT MAX(time) FROM ecmwf")
         try:
             with self.engine.connect() as conn:
                 return conn.execute(query).scalar() or TEMPORAL_START
@@ -314,7 +337,7 @@ class EcmwfCrawler(ContinuousCrawler):
             return TEMPORAL_START
 
     def get_first_data(self) -> datetime:
-        query = text("select min(time) from ecmwf")
+        query = text("SELECT MIN(time) FROM ecmwf")
         try:
             with self.engine.connect() as conn:
                 return conn.execute(query).scalar() or TEMPORAL_START
@@ -348,10 +371,12 @@ class EcmwfCrawler(ContinuousCrawler):
 
         # the requests are build from 00:00 - 23:00 for each day
         # however, for recent dates the cds API delivers data up until the latest hour of the day it can deliver
-        # that is why a check is necessary to first make sure that the database has dates up until 23:00
+        # as the time is stored without time zone, we check for 0
 
-        if begin.hour != 23:
-            log.info("Creating request for single day")
+        if begin.hour != 0:
+            log.info(
+                f"Creating request for single day because the begin date hour is at {begin.hour}"
+            )
             request = single_day_request(begin)
             log.info(f"The current request running: {request}")
             save_ecmwf_request_to_file(request, self.ecmwf_client)

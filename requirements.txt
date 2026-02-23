@@ -30,7 +30,6 @@ requests
 scipy
 shapely
 sqlalchemy
-swifter
 tqdm
 yfinance
 xarray

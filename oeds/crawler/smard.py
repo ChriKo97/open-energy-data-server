@@ -130,7 +130,7 @@ MODULE_IDS["frequency_reserve"] = [15004383, 15004384, 15004382, 15004390]
 TEMPORAL_START = datetime(2015, 1, 1)
 
 # We can query up to 5 years at once - keep this small for now
-MAX_DELTA = timedelta(weeks=104)
+MAX_DELTA = timedelta(weeks=52)
 
 SMARD_URL = "https://www.smard.de/nip-download-manager/nip/download/market-data"
 
@@ -223,13 +223,19 @@ class SmardCrawler(ContinuousCrawler):
                     result = requests.post(SMARD_URL, json=post_json)
                     # result is csv read it
                     result.raise_for_status()
-                    df = pd.read_csv(
-                        io.StringIO(result.text),
-                        sep=";",
-                        index_col="Datum von",
-                        date_format="%d.%m.%Y %H:%M",
-                        parse_dates=["Datum von", "Datum bis"],
-                    )
+
+                    try:
+                        df = pd.read_csv(
+                            io.StringIO(result.text),
+                            sep=";",
+                            index_col="Datum von",
+                            date_format="%d.%m.%Y %H:%M",
+                            parse_dates=["Datum von", "Datum bis"],
+                        )
+                    except ValueError as e:
+                        log.error("Error reading CSV, try to decrease MAX_DELTA? - got %s", e)
+                        df = pd.read_csv(io.StringIO(result.text))
+                        log.error("Following Data was found %s", df.head())
                     df.index.name = "datum_von"
                     df.columns = [col.lower().replace(" ", "_") for col in df.columns]
 

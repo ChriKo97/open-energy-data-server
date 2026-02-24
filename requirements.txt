@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-bs4
+beautifulsoup4
 cdsapi
 cfgrib
 cloudscraper

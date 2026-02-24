@@ -4,9 +4,9 @@
 
 version: "3"
 services:
-  open-data-17:
-    image: timescale/timescaledb-ha:pg17-oss
-    container_name: open-data-17
+  open-data-18:
+    image: timescale/timescaledb-ha:pg18-oss
+    container_name: open-data-18
     restart: always
     shm_size: 32g
     user: "0:0"
@@ -39,7 +39,7 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - open-data-17
+      - open-data-18
 
   open-postgrest:
     image: postgrest/postgrest:latest
@@ -47,19 +47,19 @@ services:
     ports:
       - "3001:3000"
     environment:
-      PGRST_DB_URI: postgres://readonly:readonly@open-data-17:5432/opendata
+      PGRST_DB_URI: postgres://readonly:readonly@open-data-18:5432/opendata
       PGRST_DB_PRE_CONFIG: postgrest.pre_config
       PGRST_DB_ANON_ROLE: readonly
       PGRST_DB_AGGREGATES_ENABLED: True
     depends_on:
-      - open-data-17
+      - open-data-18
 
   grafana:
     image: grafana/grafana-oss:latest
     container_name: oeds-grafana
     user: "104"
     depends_on:
-      - open-data-17
+      - open-data-18
     ports:
       - 3006:3000
     environment:

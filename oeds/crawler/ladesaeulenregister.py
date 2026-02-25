@@ -43,7 +43,7 @@ class LadesaeulenregisterCrawler(DownloadOnceCrawler):
     def crawl_structural(self, recreate: bool = False):
         if not self.structure_exists() or recreate:
             log.info("Crawling Ladesäulenregister")
-            url = "https://data.bundesnetzagentur.de/Bundesnetzagentur/DE/Fachthemen/ElektrizitaetundGas/E-Mobilitaet/Ladesaeulenregister_BNetzA_2025-07-18.csv"
+            url = "https://data.bundesnetzagentur.de/Bundesnetzagentur/DE/Fachthemen/ElektrizitaetundGas/E-Mobilitaet/Ladesaeulenregister_BNetzA_2026-01-28.csv"
             df = pd.read_csv(
                 url,
                 skiprows=10,

@@ -4,7 +4,6 @@
 
 import logging
 
-from open_mastr import Mastr
 from sqlalchemy import text
 
 from oeds.base_crawler import (
@@ -13,9 +12,9 @@ from oeds.base_crawler import (
     load_config,
 )
 
-logging.basicConfig()
-log = logging.getLogger("MaStR")
-log.setLevel(logging.INFO)
+logging.getLogger("open_mastr.utils.config").setLevel(logging.WARNING)
+
+from open_mastr import Mastr # noqa
 
 metadata_info = {
     "schema_name": "mastr",

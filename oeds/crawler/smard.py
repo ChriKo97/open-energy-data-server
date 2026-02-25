@@ -236,7 +236,9 @@ class SmardCrawler(ContinuousCrawler):
                             na_values="-",
                         )
                     except ValueError as e:
-                        log.error("Error reading CSV, try to decrease MAX_DELTA? - got %s", e)
+                        log.error(
+                            "Error reading CSV, try to decrease MAX_DELTA? - got %s", e
+                        )
                         df = pd.read_csv(io.StringIO(result.text))
                         log.error("Following Data was found %s", df.head())
                     df.index.name = "datum_von"

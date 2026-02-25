@@ -14,7 +14,7 @@ from oeds.base_crawler import (
 
 logging.getLogger("open_mastr.utils.config").setLevel(logging.WARNING)
 
-from open_mastr import Mastr # noqa
+from open_mastr import Mastr  # noqa
 
 metadata_info = {
     "schema_name": "mastr",

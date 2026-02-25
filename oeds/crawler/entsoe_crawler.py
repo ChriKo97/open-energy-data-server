@@ -6,6 +6,11 @@
 """
 This crawler downloads all the data of the ENTSO-E transparency platform.
 The resulting data is not available under an open-source license and should not be reshared but is available for crawling yourself.
+You can get an API Token here: https://transparencyplatform.zendesk.com/hc/en-us/articles/12845911031188-How-to-get-security-token
+More information can be found here: https://transparencyplatform.zendesk.com/hc/en-us/articles/15692855254548-Sitemap-for-Restful-API-Integration
+
+Rate Limit information found here: https://transparencyplatform.zendesk.com/hc/en-us/articles/12783148966036-API-Rate-Limit-Part-1
+Primary Limit: 400 requests per minute per user account (API token).
 """
 
 import logging
@@ -263,7 +268,7 @@ class EntsoeCrawler(ContinuousCrawler):
             end = pd.Timestamp.now(tz=tz)
             return start, end
 
-    def download_entsoe(self, countries, proc, start, end):
+    def download_entsoe(self, countries, proc, start, end, create_hypertable=True):
         """
         Downloads data with a procedure from a EntsoePandasClient
         and stores it in the configured database
@@ -310,16 +315,8 @@ class EntsoeCrawler(ContinuousCrawler):
         except Exception as e:
             log.error(f"could not create index if needed: {e}")
 
-        # falls es eine TimescaleDB ist, erzeuge eine Hypertable
-        try:
-            with self.engine.begin() as conn:
-                query_create_hypertable = text(
-                    f"SELECT public.create_hypertable('{proc.__name__}', 'index', if_not_exists => TRUE, migrate_data => TRUE);"
-                )
-                conn.execute(query_create_hypertable)
-            log.info(f"created hypertable {proc.__name__}")
-        except Exception as e:
-            log.error(f"could not create hypertable: {e}")
+        if create_hypertable:
+            self.create_single_hypertable_if_not_exists(proc.__name__, "index")
 
     def pull_crossborders(self, start, end, allZones=True):
         """
@@ -382,14 +379,7 @@ class EntsoeCrawler(ContinuousCrawler):
                 ges.to_sql(proc.__name__, conn, if_exists="replace")
             log.info("fixed error by adding new columns to crossborders")
 
-        try:
-            with self.engine.begin() as conn:
-                query_create_hypertable = text(
-                    f"SELECT public.create_hypertable('{proc.__name__}', 'index', if_not_exists => TRUE, migrate_data => TRUE);"
-                )
-                conn.execute(query_create_hypertable)
-        except Exception as e:
-            log.error(f"could not create hypertable: {e}")
+        self.create_single_hypertable_if_not_exists(proc.__name__, "index")
 
     def save_power_system_data(self):
         """
@@ -549,7 +539,7 @@ class EntsoeCrawler(ContinuousCrawler):
         delta = end_ - start_
 
         if delta.days > 365:
-            self.download_entsoe(countries, proc_cap, start_, end_)
+            self.download_entsoe(countries, proc_cap, start_, end_, create_hypertable=False)
 
         # timeseries
         ts_procs = [

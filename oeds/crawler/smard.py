@@ -231,6 +231,9 @@ class SmardCrawler(ContinuousCrawler):
                             index_col="Datum von",
                             date_format="%d.%m.%Y %H:%M",
                             parse_dates=["Datum von", "Datum bis"],
+                            decimal=",",
+                            thousands=".",
+                            na_values="-",
                         )
                     except ValueError as e:
                         log.error("Error reading CSV, try to decrease MAX_DELTA? - got %s", e)

@@ -82,19 +82,19 @@ def get_nuts_geodataframe() -> gpd.GeoDataFrame:
     return nuts.loc[:, ["NUTS_ID", "geometry"]].set_index("NUTS_ID")
 
 
-def create_table(engine):
+def create_table_if_not_exists(engine):
     with engine.begin() as conn:
         conn.execute(
             "CREATE TABLE IF NOT EXISTS ecmwf( "
             "time timestamp without time zone NOT NULL, "
-            "temp_air double precision, "
-            "ghi double precision, "
-            "wind_meridional double precision, "
-            "wind_zonal double precision, "
-            "wind_speed double precision, "
-            "precipitation double precision, "
             "latitude double precision, "
             "longitude double precision, "
+            "temp_air real, "
+            "ghi real, "
+            "wind_meridional real, "
+            "wind_zonal real, "
+            "wind_speed real, "
+            "precipitation real, "
             "PRIMARY KEY (time , latitude, longitude));"
         )
 
@@ -102,15 +102,15 @@ def create_table(engine):
         conn.execute(
             "CREATE TABLE IF NOT EXISTS ecmwf_eu( "
             "time timestamp without time zone NOT NULL, "
-            "temp_air double precision, "
-            "ghi double precision, "
-            "wind_meridional double precision, "
-            "wind_zonal double precision, "
-            "wind_speed double precision, "
-            "precipitation double precision, "
             "latitude double precision, "
             "longitude double precision, "
             "nuts_id text, "
+            "temp_air real, "
+            "ghi real, "
+            "wind_meridional real, "
+            "wind_zonal real, "
+            "wind_speed real, "
+            "precipitation real, "
             "PRIMARY KEY (time , latitude, longitude, nuts_id));"
         )
 
@@ -324,6 +324,7 @@ class EcmwfCrawler(ContinuousCrawler):
 
     def __init__(self, schema_name: str, config: CrawlerConfig):
         super().__init__(schema_name, config)
+        create_table_if_not_exists(self.engine)
         self.ecmwf_client = cdsapi.Client()
         TEMP_DIR.mkdir(parents=True, exist_ok=True)
 

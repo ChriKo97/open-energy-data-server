@@ -93,14 +93,14 @@ class FrequencyCrawler(DownloadOnceCrawler):
             except Exception as e:
                 log.error(f"Error: {e}")
 
-    def crawl_frequency(self, first=2011, last=2020):
+    def crawl_frequency(self, first=2011, last=2019):
         for year in range(first, last + 1):
             log.info("crawling the year %s", year)
             url = f"https://www.50hertz.com/Portals/1/Dokumente/Transparenz/Regelenergie/Archiv%20Netzfrequenz/Netzfrequenz%20{year}.zip"
             self.crawl_year_by_url(url)
 
     def create_hypertable_if_not_exists(self):
-        self.create_single_hypertable_if_not_exists("frequency", "date_time")
+        self.create_single_hypertable_if_not_exists("frequency", "index")
 
 
 if __name__ == "__main__":

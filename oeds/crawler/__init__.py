@@ -24,6 +24,7 @@ from oeds.crawler.nuts_mapper import NutsCrawler
 from oeds.crawler.opec import OpecDownloader
 from oeds.crawler.opsd import OpsdCrawler
 from oeds.crawler.smard import SmardCrawler
+from oeds.crawler.synpro import SynproLoadProfileCrawler
 from oeds.crawler.vea_industrial_load_profiles import IndustrialLoadProfileCrawler
 
 crawlers: dict[str, type[BaseCrawler]] = {
@@ -48,6 +49,7 @@ crawlers: dict[str, type[BaseCrawler]] = {
     "opec": OpecDownloader,
     "opsd": OpsdCrawler,
     "smard": SmardCrawler,
+    "synpro": SynproLoadProfileCrawler,
     "vea_industrial_load_profiles": IndustrialLoadProfileCrawler,
     "weather": EcmwfCrawler,
 }

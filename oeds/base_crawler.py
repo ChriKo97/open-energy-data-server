@@ -76,6 +76,9 @@ class BaseCrawler:
     def create_single_hypertable_if_not_exists(
         self, table_name: str, time_column: str
     ) -> None:
+        if not self.engine.url.drivername.startswith("postgresql"):
+            return
+
         try:
             query_create_hypertable = text(
                 f"SELECT public.create_hypertable('{table_name}', '{time_column}', if_not_exists => TRUE, migrate_data => TRUE);"

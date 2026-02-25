@@ -40,7 +40,12 @@ class OpsdCrawler(DownloadOnceCrawler):
         try:
             query = text("SELECT 1 from national_generation_capacity limit 1")
             with self.engine.connect() as conn:
-                return conn.execute(query).scalar() == 1
+                capacities_exists = conn.execute(query).scalar() == 1
+
+            query = text("SELECT 1 from when2heat limit 1")
+            with self.engine.connect() as conn:
+                when2heat_exists = conn.execute(query).scalar() == 1
+            return when2heat_exists and capacities_exists
         except Exception:
             return False
 
@@ -68,7 +73,7 @@ class OpsdCrawler(DownloadOnceCrawler):
         with sqlite3.connect(db_path) as conn:
             data = pd.read_sql("select * from when2heat", conn)
         data.index = pd.to_datetime(data["utc_timestamp"])
-        data["cet_cest_timestamp"] = pd.to_datetime(data["cet_cest_timestamp"])
+        del data["cet_cest_timestamp"]
         del data["utc_timestamp"]
         log.info("data read successfully")
 

@@ -25,9 +25,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 29,
   "links": [],
-  "liveNow": false,
   "panels": [
     {
       "collapsed": false,
@@ -59,6 +57,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -78,6 +77,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -93,7 +93,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -121,10 +121,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "datasource": {
@@ -222,7 +224,6 @@
               "type": "time"
             }
           ],
-          "hide": false,
           "metricColumn": "none",
           "rawQuery": true,
           "rawSql": "SELECT\n  $__timeGroupAlias(index,$__interval),\n  sum(forecasted_load/($__interval_ms/1000/3600)) AS \"forecasted_load\"\nFROM entsoe.query_load_forecast\nWHERE\n  $__timeFilter(index) AND\n  country IN ('DE','AT','FR','PL','IT','ES','PT','CH','BE','NL','GB','SE','NO')\nGROUP BY 1\nORDER BY 1",
@@ -303,10 +304,9 @@
               "type": "time"
             }
           ],
-          "hide": false,
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  $__timeGroupAlias(index,$__interval),\n  sum((biomass+\n  fossil_hard_coal+\n  geothermal+\n  nuclear+\n  \"fossil_brown_coal/lignite\"+\n  \"fossil_coal-derived_gas\"+\n  \"hydro_run-of-river_and_poundage\"+\n  waste+\n  solar+\n  wind_offshore+\n  wind_onshore+\n  other_renewable+\n  hydro_water_reservoir+\n  fossil_gas)\n  /($__interval_ms/1000/3600)) AS \"generation_sum\"\nFROM entsoe.query_generation\nWHERE\n  $__timeFilter(index)\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT\n  $__timeGroupAlias(index,$__interval),\n  sum((biomass+\n  fossil_hard_coal+\n  geothermal+\n  nuclear+\n  \"fossil_brown_coal/lignite\"+\n  \"fossil_coal-derived_gas\"+\n  \"hydro_run-of-river_and_poundage\"+\n  waste+\n  solar+\n  wind_offshore+\n  wind_onshore+\n  other_renewable+\n  hydro_water_reservoir+\n  fossil_gas)\n  /($__interval_ms/1000/3600)) AS \"generation_sum\"\nFROM entsoe.query_generation\nWHERE\n  $__timeFilter(index) AND\n  country IN ('DE','AT','FR','PL','IT','ES','PT','CH','BE','NL','GB','SE','NO')\nGROUP BY 1\nORDER BY 1",
           "refId": "C",
           "select": [
             [
@@ -359,6 +359,7 @@
           ]
         },
         {
+          "dataset": "opendata",
           "datasource": {
             "type": "grafana-postgresql-datasource",
             "uid": "P6EAA63344BCC9F38"
@@ -374,10 +375,9 @@
               "type": "time"
             }
           ],
-          "hide": false,
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  $__timeGroupAlias(index,$__interval),\n  sum(actual_aggregated/10) AS \"forecasted_generation\",\n  sum(actual_consumption) AS \"forecasted_consumption\"\nFROM entsoe.query_generation_forecast\nWHERE\n  $__timeFilter(index)\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT\n  $__timeGroupAlias(index,$__interval),\n  sum(scheduled_consumption) AS \"forecasted_consumption\",\n  sum(scheduled_aggregated) AS \"forecasted_generation\"\n  \nFROM entsoe.query_generation_forecast\nWHERE\n  $__timeFilter(index) AND\n  country IN ('DE','AT','FR','PL','IT','ES','PT','CH','BE','NL','GB','SE','NO')\nGROUP BY 1\nORDER BY 1",
           "refId": "D",
           "select": [
             [
@@ -438,7 +438,7 @@
             ],
             "limit": 50
           },
-          "table": "query_generation_forecast",
+          "table": "entsoe.query_generation_forecast",
           "timeColumn": "index",
           "timeColumnType": "timestamp",
           "where": [
@@ -498,7 +498,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -587,10 +587,11 @@
           "id": "europe",
           "lat": 46,
           "lon": 14,
+          "noRepeat": false,
           "zoom": 4
         }
       },
-      "pluginVersion": "10.4.4",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "datasource": {
@@ -689,6 +690,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -705,6 +707,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -722,7 +725,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -732,69 +735,7 @@
           },
           "unit": "€/MWh"
         },
-        "overrides": [
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "AT",
-                  "BE",
-                  "CH",
-                  "CZ",
-                  "DE_LU",
-                  "DK_1",
-                  "DK_2",
-                  "EE",
-                  "ES",
-                  "FR",
-                  "GB",
-                  "GR",
-                  "HR",
-                  "HU",
-                  "IE_SEM",
-                  "IT_CALA",
-                  "IT_CNOR",
-                  "IT_CSUD",
-                  "IT_NORD",
-                  "IT_ROSN",
-                  "IT_SACO_AC",
-                  "IT_SARD",
-                  "IT_SICI",
-                  "IT_SUD",
-                  "LT",
-                  "LV",
-                  "NL",
-                  "NO_5",
-                  "PL",
-                  "PT",
-                  "RS",
-                  "SI",
-                  "SK",
-                  "UA_BEI",
-                  "UA_IPS",
-                  "NO_2_NSL",
-                  "NO_2",
-                  "NO_1"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": true
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 12,
@@ -812,10 +753,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "datasource": {
@@ -835,7 +778,7 @@
           ],
           "metricColumn": "country",
           "rawQuery": true,
-          "rawSql": "SELECT\n  $__timeGroupAlias(index,$__interval),\n  country AS metric,\n  avg(\"0\") AS \"\"\"0\"\"\"\nFROM entsoe.query_day_ahead_prices\nWHERE\n  $__timeFilter(index)\nGROUP BY 1,2\nORDER BY 1,2",
+          "rawSql": "SELECT\n  $__timeGroupAlias(index,$__interval),\n  country AS metric,\n  avg(\"value\") AS \"value\"\nFROM entsoe.query_day_ahead_prices\nWHERE\n  $__timeFilter(index)\nGROUP BY 1,2\nORDER BY 1,2",
           "refId": "A",
           "select": [
             [
@@ -909,7 +852,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "P6EAA63344BCC9F38"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -922,6 +864,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -938,6 +881,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": true,
             "stacking": {
               "group": "A",
@@ -953,7 +897,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -980,10 +924,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "datasource": {
@@ -1081,7 +1027,6 @@
               "type": "time"
             }
           ],
-          "hide": false,
           "metricColumn": "none",
           "rawQuery": true,
           "rawSql": "SELECT\n  $__timeGroupAlias(index,$__interval),\n  avg(forecasted_load) AS \"forecasted_load\"\nFROM entsoe.query_load_forecast\nWHERE\n  $__timeFilter(index) AND\n  country = '$country'\nGROUP BY 1\nORDER BY 1",
@@ -1155,7 +1100,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "P6EAA63344BCC9F38"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1169,6 +1113,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "bars",
             "fillOpacity": 36,
             "gradientMode": "none",
@@ -1185,6 +1130,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -1200,7 +1146,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -1229,11 +1175,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "none"
         }
       },
-      "pluginVersion": "8.5.0",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "datasource": {
@@ -1393,7 +1340,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "P6EAA63344BCC9F38"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1407,6 +1353,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 36,
             "gradientMode": "none",
@@ -1423,6 +1370,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -1438,7 +1386,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -1448,7 +1396,32 @@
           },
           "unit": "megwatt"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "solar"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": true,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -1456,7 +1429,6 @@
         "x": 0,
         "y": 30
       },
-      "hideTimeOverride": false,
       "id": 16,
       "interval": "15m",
       "options": {
@@ -1467,11 +1439,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "desc"
         }
       },
-      "pluginVersion": "8.5.0",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "datasource": {
@@ -1646,7 +1619,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "P6EAA63344BCC9F38"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1659,6 +1631,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -1675,6 +1648,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -1690,7 +1664,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -1717,10 +1691,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "datasource": {
@@ -1740,7 +1716,7 @@
           ],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  $__timeGroupAlias(index,$__interval),\n  avg(\"0\") AS \"da_price\"\nFROM entsoe.query_day_ahead_prices\nWHERE\n  $__timeFilter(index) AND\n  country = '$country'\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT\n  $__timeGroupAlias(index,$__interval),\n  avg(\"value\") AS \"da_price\"\nFROM entsoe.query_day_ahead_prices\nWHERE\n  $__timeFilter(index) AND\n  country = '$country'\nGROUP BY 1\nORDER BY 1",
           "refId": "A",
           "select": [
             [
@@ -1811,7 +1787,6 @@
         "type": "grafana-postgresql-datasource",
         "uid": "P6EAA63344BCC9F38"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1824,6 +1799,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -1840,6 +1816,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -1855,7 +1832,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -1865,33 +1842,7 @@
           },
           "unit": "megwatt"
         },
-        "overrides": [
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "solar",
-                  "solar_fc"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": true
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 10,
@@ -1909,10 +1860,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "datasource": {
@@ -2040,7 +1993,6 @@
               "type": "time"
             }
           ],
-          "hide": false,
           "metricColumn": "none",
           "rawQuery": true,
           "rawSql": "SELECT\n  $__timeGroupAlias(index,$__interval),\n  sum(solar/($__interval_ms/1000/3600)) AS \"solar\",\n  sum(wind_onshore/($__interval_ms/1000/3600)) AS \"wind_onshore\",\n  sum(wind_offshore/($__interval_ms/1000/3600)) AS \"wind_offshore\"\nFROM entsoe.query_generation\nWHERE\n  $__timeFilter(index)\nGROUP BY 1\nORDER BY 1",
@@ -2140,8 +2092,9 @@
       "type": "timeseries"
     }
   ],
+  "preload": false,
   "refresh": "",
-  "schemaVersion": 39,
+  "schemaVersion": 42,
   "tags": [
     "open-data"
   ],
@@ -2149,9 +2102,8 @@
     "list": [
       {
         "current": {
-          "selected": false,
-          "text": "FR",
-          "value": "FR"
+          "text": "AT",
+          "value": "AT"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -2159,15 +2111,13 @@
         },
         "definition": "select name from entsoe.areas",
         "description": "",
-        "hide": 0,
         "includeAll": false,
-        "multi": false,
         "name": "country",
         "options": [],
         "query": "select name from entsoe.areas",
         "refresh": 1,
         "regex": "",
-        "skipUrlSync": false,
+        "regexApplyTo": "value",
         "sort": 1,
         "type": "query"
       }
@@ -2178,9 +2128,9 @@
     "to": "now"
   },
   "timepicker": {},
-  "timezone": "",
+  "timezone": "browser",
   "title": "ENTSOE-Monitor",
-  "uid": "FEg9kde7z",
-  "version": 12,
+  "uid": "FEg9kde7znew",
+  "version": 2,
   "weekStart": ""
 }

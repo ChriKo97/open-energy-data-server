@@ -22,6 +22,7 @@ import pandas as pd
 from entsoe import EntsoePandasClient
 from entsoe.exceptions import InvalidBusinessParameterError, NoMatchingDataError
 from entsoe.mappings import NEIGHBOURS, PSRTYPE_MAPPINGS, Area
+from psycopg2.errors import UndefinedTable
 from requests.exceptions import HTTPError
 from sqlalchemy import text
 from tqdm import tqdm
@@ -261,9 +262,12 @@ class EntsoeCrawler(ContinuousCrawler):
                 except TypeError:
                     # if already localized
                     pass
+            except UndefinedTable:
+                start = pd.Timestamp("20150101", tz=tz)
+                log.info("no data yet - using default timestamp (%s)", start)
             except Exception as e:
                 start = pd.Timestamp("20150101", tz=tz)
-                log.info(f"using default {start} timestamp ({e})")
+                log.info("using default %s timestamp (%s)", start, e)
 
             end = pd.Timestamp.now(tz=tz)
             return start, end
@@ -539,10 +543,13 @@ class EntsoeCrawler(ContinuousCrawler):
         delta = end_ - start_
 
         if delta.days > 365:
-            self.download_entsoe(countries, proc_cap, start_, end_, create_hypertable=False)
+            self.download_entsoe(
+                countries, proc_cap, start_, end_, create_hypertable=False
+            )
 
         # timeseries
         ts_procs = [
+            self.client.query_installed_generation_capacity,
             self.client.query_day_ahead_prices,
             self.client.query_load,
             self.client.query_load_forecast,

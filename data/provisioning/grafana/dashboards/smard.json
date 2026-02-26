@@ -18,16 +18,13 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 2,
-  "id": 69,
   "links": [],
-  "liveNow": false,
   "panels": [
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "P6EAA63344BCC9F38"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -41,6 +38,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 36,
             "gradientMode": "none",
@@ -57,6 +55,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -72,7 +71,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -82,32 +81,7 @@
           },
           "unit": "megwatt"
         },
-        "overrides": [
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "Pumpspeicher"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": true
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 11,
@@ -115,7 +89,6 @@
         "x": 0,
         "y": 0
       },
-      "hideTimeOverride": false,
       "id": 2,
       "interval": "15m",
       "options": {
@@ -126,13 +99,15 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "desc"
         }
       },
-      "pluginVersion": "8.5.0",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
+          "dataset": "opendata",
           "datasource": {
             "type": "grafana-postgresql-datasource",
             "uid": "P6EAA63344BCC9F38"
@@ -142,7 +117,7 @@
           "group": [],
           "metricColumn": "country",
           "rawQuery": true,
-          "rawSql": "SELECT\n  $__timeGroupAlias(\"timestamp\",$__interval),\n  \"commodity_name\" AS metric,\n  avg(\"mwh\"*4) AS \"mwh\"\nFROM\n  smard.smard\nWHERE\n  $__timeFilter(\"timestamp\")\nGROUP BY 1,2\nORDER BY 1,2",
+          "rawSql": "SELECT \n$__timeGroupAlias(datum_von,$__interval),\nAVG(\"biomasse_[mwh]_berechnete_auflösungen\") AS \"biomasse\",\nAVG(\"wasserkraft_[mwh]_berechnete_auflösungen\") AS \"wasserkraft\",\nAVG(\"wind_offshore_[mwh]_berechnete_auflösungen\") AS \"wind_offshore\",\nAVG(\"wind_onshore_[mwh]_berechnete_auflösungen\") AS \"wind_onshore\",\nAVG(\"photovoltaik_[mwh]_berechnete_auflösungen\") AS \"photovoltaik\",\nAVG(\"sonstige_erneuerbare_[mwh]_berechnete_auflösungen\") AS \"sonstige_erneuerbare\",\nAVG(\"kernenergie_[mwh]_berechnete_auflösungen\") AS \"kernenergie\",\nAVG(\"braunkohle_[mwh]_berechnete_auflösungen\") AS \"braunkohle\",\nAVG(\"steinkohle_[mwh]_berechnete_auflösungen\") AS \"steinkohle\",\nAVG(\"erdgas_[mwh]_berechnete_auflösungen\") AS \"erdgas\",\nAVG(\"pumpspeicher_[mwh]_berechnete_auflösungen\") AS \"pumpspeicher\",\nAVG(\"sonstige_konventionelle_[mwh]_berechnete_auflösungen\") AS \"sonstige_konventionelle\"\nFROM smard.generation \nWHERE $__timeFilter(datum_von)\nGROUP BY 1",
           "refId": "A",
           "select": [
             [
@@ -261,21 +236,181 @@
           "sql": {
             "columns": [
               {
-                "parameters": [],
+                "alias": "\"biomasse\"",
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"biomasse_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"wasserkraft_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"wind_offshore_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"wind_onshore_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"photovoltaik_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"sonstige_erneuerbare_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"kernenergie_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"braunkohle_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"steinkohle_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"erdgas_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"pumpspeicher_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"sonstige_konventionelle_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "name": "$__timeGroupAlias",
+                "parameters": [
+                  {
+                    "name": "datum_von",
+                    "type": "functionParameter"
+                  },
+                  {
+                    "name": "$__interval",
+                    "type": "functionParameter"
+                  }
+                ],
                 "type": "function"
               }
             ],
             "groupBy": [
               {
                 "property": {
+                  "name": "datum_von",
                   "type": "string"
                 },
                 "type": "groupBy"
               }
             ],
-            "limit": 50
+            "limit": 50,
+            "whereJsonTree": {
+              "children1": [
+                {
+                  "id": "b8b98a99-89ab-4cde-b012-319c9928ff0c",
+                  "properties": {
+                    "field": "datum_von",
+                    "fieldSrc": "field",
+                    "operator": "macros",
+                    "value": [
+                      "timeFilter"
+                    ],
+                    "valueError": [
+                      null
+                    ],
+                    "valueSrc": [
+                      "value"
+                    ],
+                    "valueType": [
+                      "datetime"
+                    ]
+                  },
+                  "type": "rule"
+                }
+              ],
+              "id": "abbb9b9a-0123-4456-b89a-b19c99218e47",
+              "type": "group"
+            },
+            "whereString": "$__timeFilter(datum_von)"
           },
-          "table": "query_generation",
+          "table": "smard.generation",
           "timeColumn": "index",
           "timeColumnType": "timestamp",
           "where": [
@@ -305,7 +440,280 @@
         "type": "grafana-postgresql-datasource",
         "uid": "P6EAA63344BCC9F38"
       },
-      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "megwatt"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 11
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.4.0",
+      "targets": [
+        {
+          "dataset": "opendata",
+          "editorMode": "builder",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroup(datum_von,$__interval), AVG(\"niederlande_(export)_[mwh]_berechnete_auflösungen\") AS \"niederlande_export\", AVG(\"niederlande_(import)_[mwh]_berechnete_auflösungen\") AS \"niederlande_import\", AVG(\"schweiz_(export)_[mwh]_berechnete_auflösungen\") AS \"schweiz_export\", AVG(\"schweiz_(import)_[mwh]_berechnete_auflösungen\") AS \"schweiz_import\", AVG(\"tschechien_(import)_[mwh]_berechnete_auflösungen\") AS \"tschechien_import\", AVG(\"luxemburg_(export)_[mwh]_berechnete_auflösungen\") AS \"lu_export\", AVG(\"luxemburg_(import)_[mwh]_berechnete_auflösungen\") AS \"lu_import\", AVG(\"österreich_(export)_[mwh]_berechnete_auflösungen\") AS \"österreich_export\", AVG(\"österreich_(import)_[mwh]_berechnete_auflösungen\") AS \"österreich_import\", AVG(\"frankreich_(export)_[mwh]_berechnete_auflösungen\") AS \"frankreich_export\", AVG(\"frankreich_(import)_[mwh]_berechnete_auflösungen\") AS \"frankreich_import\" FROM smard.allocation WHERE $__timeFilter(datum_von) GROUP BY $__timeGroup(datum_von, $__interval) ",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "name": "$__timeGroup",
+                "parameters": [
+                  {
+                    "name": "datum_von",
+                    "type": "functionParameter"
+                  },
+                  {
+                    "name": "$__interval",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"niederlande_export\"",
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"niederlande_(export)_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"niederlande_import\"",
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"niederlande_(import)_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"schweiz_export\"",
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"schweiz_(export)_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"schweiz_import\"",
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"schweiz_(import)_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"tschechien_import\"",
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"tschechien_(import)_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"lu_export\"",
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"luxemburg_(export)_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"lu_import\"",
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"luxemburg_(import)_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"österreich_export\"",
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"österreich_(export)_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"österreich_import\"",
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"österreich_(import)_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"frankreich_export\"",
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"frankreich_(export)_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"frankreich_import\"",
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"frankreich_(import)_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "name": "$__timeGroup(datum_von, $__interval)",
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": null,
+            "whereJsonTree": {
+              "children1": [
+                {
+                  "id": "aa899a89-0123-4456-b89a-b19c9932e919",
+                  "properties": {
+                    "field": "datum_von",
+                    "fieldSrc": "field",
+                    "operator": "macros",
+                    "value": [
+                      "timeFilter"
+                    ],
+                    "valueError": [
+                      null
+                    ],
+                    "valueSrc": [
+                      "value"
+                    ],
+                    "valueType": [
+                      "datetime"
+                    ]
+                  },
+                  "type": "rule"
+                }
+              ],
+              "id": "abbb9b9a-0123-4456-b89a-b19c99218e47",
+              "type": "group"
+            },
+            "whereString": "$__timeFilter(datum_von)"
+          },
+          "table": "smard.allocation"
+        }
+      ],
+      "title": "Import & Export",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "P6EAA63344BCC9F38"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -319,6 +727,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 36,
             "gradientMode": "none",
@@ -335,6 +744,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -350,7 +760,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -379,7 +789,7 @@
                 "id": "custom.hideFrom",
                 "value": {
                   "legend": false,
-                  "tooltip": false,
+                  "tooltip": true,
                   "viz": true
                 }
               }
@@ -391,9 +801,8 @@
         "h": 11,
         "w": 24,
         "x": 0,
-        "y": 11
+        "y": 19
       },
-      "hideTimeOverride": false,
       "id": 3,
       "interval": "15m",
       "options": {
@@ -404,11 +813,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "desc"
         }
       },
-      "pluginVersion": "8.5.0",
+      "pluginVersion": "12.4.0",
       "targets": [
         {
           "datasource": {
@@ -577,20 +987,219 @@
       ],
       "title": "Stromerzeugung ENTSO-E DE_LU (average over ${__interval})",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "P6EAA63344BCC9F38"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "megwatt"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "price"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "€/MWh"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 30
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.4.0",
+      "targets": [
+        {
+          "dataset": "opendata",
+          "editorMode": "builder",
+          "format": "table",
+          "rawSql": "SELECT $__timeGroup(datum_von,$__interval), AVG(\"volumen_(+)_[mwh]_berechnete_auflösungen\") AS \"pos_fcr\", AVG(\"volumen_(-)_[mwh]_berechnete_auflösungen\") AS \"neg_fcr\", AVG(\"preis_[€/mwh]_berechnete_auflösungen\") AS \"price\" FROM smard.frequency_reserve WHERE $__timeFilter(datum_von) GROUP BY $__timeGroup(datum_von, $__interval) ",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "name": "$__timeGroup",
+                "parameters": [
+                  {
+                    "name": "datum_von",
+                    "type": "functionParameter"
+                  },
+                  {
+                    "name": "$__interval",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"pos_fcr\"",
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"volumen_(+)_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"neg_fcr\"",
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"volumen_(-)_[mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"price\"",
+                "name": "AVG",
+                "parameters": [
+                  {
+                    "name": "\"preis_[€/mwh]_berechnete_auflösungen\"",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "name": "$__timeGroup(datum_von, $__interval)",
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": null,
+            "whereJsonTree": {
+              "children1": [
+                {
+                  "id": "9b99aba9-4567-489a-bcde-f19c993a6ce7",
+                  "properties": {
+                    "field": "datum_von",
+                    "fieldSrc": "field",
+                    "operator": "macros",
+                    "value": [
+                      "timeFilter"
+                    ],
+                    "valueError": [
+                      null
+                    ],
+                    "valueSrc": [
+                      "value"
+                    ],
+                    "valueType": [
+                      "datetime"
+                    ]
+                  },
+                  "type": "rule"
+                }
+              ],
+              "id": "abbb9b9a-0123-4456-b89a-b19c99218e47",
+              "type": "group"
+            },
+            "whereString": "$__timeFilter(datum_von)"
+          },
+          "table": "smard.frequency_reserve"
+        }
+      ],
+      "title": "Regelleistung",
+      "type": "timeseries"
     }
   ],
-  "refresh": false,
-  "schemaVersion": 39,
+  "preload": false,
+  "refresh": "",
+  "schemaVersion": 42,
   "tags": [],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-1y",
     "to": "now"
   },
   "timepicker": {},
-  "timezone": "",
+  "timezone": "browser",
   "title": "smard",
   "uid": "d7e44e51-6f7f-4316-b9fb-1bb32c03fa18",
   "version": 1,

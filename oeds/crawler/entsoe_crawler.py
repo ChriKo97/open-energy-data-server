@@ -264,7 +264,9 @@ class EntsoeCrawler(ContinuousCrawler):
                     pass
             except UndefinedTable:
                 start = pd.Timestamp("20150101", tz=tz)
-                log.info("no data in %s yet - using default timestamp (%s)", tablename, start)
+                log.info(
+                    "no data in %s yet - using default timestamp (%s)", tablename, start
+                )
             except Exception as e:
                 start = pd.Timestamp("20150101", tz=tz)
                 log.info("using default %s timestamp for %s (%s)", start, tablename, e)
@@ -549,7 +551,7 @@ class EntsoeCrawler(ContinuousCrawler):
 
         # timeseries
         ts_procs = [
-            #self.client.query_installed_generation_capacity_per_unit,
+            # self.client.query_installed_generation_capacity_per_unit,
             self.client.query_day_ahead_prices,
             self.client.query_load,
             self.client.query_load_forecast,

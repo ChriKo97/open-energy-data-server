@@ -546,13 +546,13 @@
     "list": []
   },
   "time": {
-    "from": "2011-11-14T12:58:00.988Z",
-    "to": "2026-01-05T08:55:29.990Z"
+    "from": "now-5y",
+    "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Instat PL Dashboard",
   "uid": "opd7jz5",
-  "version": 6,
+  "version": 7,
   "weekStart": ""
 }

@@ -1404,7 +1404,7 @@
               "options": {
                 "mode": "exclude",
                 "names": [
-                  "solar"
+                  "fossil_brown_coal/lignite"
                 ],
                 "prefix": "All except:",
                 "readOnly": true
@@ -2102,8 +2102,8 @@
     "list": [
       {
         "current": {
-          "text": "AT",
-          "value": "AT"
+          "text": "DE",
+          "value": "DE"
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -2124,13 +2124,13 @@
     ]
   },
   "time": {
-    "from": "now-90d",
+    "from": "now-30d",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "ENTSOE-Monitor",
   "uid": "FEg9kde7znew",
-  "version": 2,
+  "version": 1,
   "weekStart": ""
 }

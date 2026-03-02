@@ -2,6 +2,15 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+"""
+This crawls the NUTS regions. There are various versions available.
+Changes are available here:
+https://ec.europa.eu/eurostat/web/nuts/history
+
+More information on the avilable download data can be found here:
+https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics
+"""
+
 import io
 import logging
 import zipfile
@@ -33,10 +42,10 @@ class NutsCrawler(DownloadOnceCrawler):
             self.download_nuts()
             log.info("finished downloading NUTS")
 
-    def download_nuts(self):
+    def download_nuts(self, year=2024):
         # Download shp zip for EU NUTS here:
         # https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics
-        download_url = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/shp/NUTS_RG_01M_2021_4326.shp.zip"
+        download_url = f"https://gisco-services.ec.europa.eu/distribution/v2/nuts/shp/NUTS_RG_01M_{year}_4326.shp.zip"
         # download file
         r = requests.get(download_url)
         z = zipfile.ZipFile(io.BytesIO(r.content))

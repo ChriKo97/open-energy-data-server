@@ -127,6 +127,9 @@ class EntsoeCrawler(ContinuousCrawler):
     class to allow easier crawling of ENTSO-E timeseries data
     """
 
+    # data in the last two days might not be available yet, so we wait for it.
+    OFFSET_FROM_NOW = timedelta(days=2)
+
     def __init__(self, schema_name, config):
         super().__init__(schema_name, config)
         self.client = EntsoePandasClient(api_key=self.config["entsoe_api_key"])
@@ -179,12 +182,12 @@ class EntsoeCrawler(ContinuousCrawler):
                 if e.response.status_code == 400:
                     raise
                 else:
-                    log.info(f"retrying: {repr(e)}, {start}, {end}")
+                    log.info(f"retrying HTTPError: {repr(e)}, {start}, {end}")
                     time.sleep(10)
                     data = pd.DataFrame(proc(country, start=start, end=end))
 
             except Exception as e:
-                log.info(f"retrying: {repr(e)}, {start}, {end}")
+                log.info(f"retrying Generic Error: {repr(e)}, {start}, {end}")
                 time.sleep(10)
                 data = pd.DataFrame(proc(country, start=start, end=end))
 
@@ -227,7 +230,7 @@ class EntsoeCrawler(ContinuousCrawler):
         tablename,
         start: datetime | None = None,
         end: datetime | None = None,
-        tz="Europe/Berlin",
+        tz="UTC",
     ):
         """
         Find the best Start and end for the given procedurename by finding the last timestemp where data was collected for.
@@ -238,7 +241,7 @@ class EntsoeCrawler(ContinuousCrawler):
         tablename : str
             name of the table
         tz :  str
-            (Default value = 'Europe/Berlin')
+            (Default value = 'UTC')
 
         Returns
         -------
@@ -271,7 +274,7 @@ class EntsoeCrawler(ContinuousCrawler):
                 start = pd.Timestamp("20150101", tz=tz)
                 log.info("using default %s timestamp for %s (%s)", start, tablename, e)
 
-            end = pd.Timestamp.now(tz=tz)
+            end = pd.Timestamp.now(tz=tz) - self.get_minimum_offset()
             return start, end
 
     def download_entsoe(self, countries, proc, start, end, create_hypertable=True):
@@ -441,7 +444,7 @@ class EntsoeCrawler(ContinuousCrawler):
         """
 
         # new proxy function
-        def query_per_plant(country, begin, end):
+        def query_per_plant(country, start, end):
             """
             wrapper function around query_generation_per_plant to convert multiindex
 
@@ -449,7 +452,7 @@ class EntsoeCrawler(ContinuousCrawler):
             ----------
             country : str
                 country to fetch
-            begin : pd.DateTime
+            start : pd.DateTime
                 param end:
             end :
 
@@ -458,7 +461,7 @@ class EntsoeCrawler(ContinuousCrawler):
             -------
 
             """
-            ppp = self.client.query_generation_per_plant(country, start=begin, end=end)
+            ppp = self.client.query_generation_per_plant(country, start=start, end=end)
             # convert multiindex into second column
             pp = ppp.melt(
                 var_name=["name", "type"],

@@ -699,6 +699,96 @@
               "type": "expression"
             }
           ]
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "P6EAA63344BCC9F38"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "group": [
+            {
+              "params": [
+                "$__interval",
+                "none"
+              ],
+              "type": "time"
+            }
+          ],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__timeGroupAlias(\"time\",$__interval),\n  avg(temp_air-273.15) AS \"temp_air_c\",\n  avg(ghi) AS \"ghi_c\",\n  avg(SQRT(POWER(wind_meridional,2)+POWER(wind_zonal,2))) AS \"wind_speed_c\"\nFROM weather.cosmo\nWHERE\n  $__timeFilter(\"time\") AND\n  country = 'DE'\nGROUP BY 1\nORDER BY 1",
+          "refId": "B",
+          "select": [
+            [
+              {
+                "params": [
+                  "wind_meridional"
+                ],
+                "type": "column"
+              },
+              {
+                "params": [
+                  "avg"
+                ],
+                "type": "aggregate"
+              },
+              {
+                "params": [
+                  "wind_meridional"
+                ],
+                "type": "alias"
+              }
+            ],
+            [
+              {
+                "params": [
+                  "wind_zonal"
+                ],
+                "type": "column"
+              },
+              {
+                "params": [
+                  "avg"
+                ],
+                "type": "aggregate"
+              },
+              {
+                "params": [
+                  "wind_zonal"
+                ],
+                "type": "alias"
+              }
+            ]
+          ],
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          },
+          "table": "cosmo",
+          "timeColumn": "\"time\"",
+          "timeColumnType": "timestamp",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
         }
       ],
       "title": "Weather Explorer",
@@ -1099,7 +1189,7 @@
           ],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  --$__timeGroupAlias(\"time\",$__interval),\n  --avg(temp_air-273.15) AS \"temp_air\",\n  avg(ghi/3600) AS \"ghi\",\n  --avg(\"wind_speed\") AS \"wind_speed\",\n  longitude,\n  latitude,\n  nuts_id\nFROM ecmwf.ecmwf_eu\nWHERE\n  \"time\" = (SELECT MAX(\"time\") FROM ecmwf.ecmwf WHERE $__timeFilter(\"time\"))\n  \nGROUP BY longitude, latitude, nuts_id\n--, 1\n--ORDER BY 1",
+          "rawSql": "SELECT\n  --$__timeGroupAlias(\"time\",$__interval),\n  --avg(temp_air-273.15) AS \"temp_air\",\n  avg(ghi/3600) AS \"ghi\",\n  --avg(\"wind_speed\") AS \"wind_speed\",\n  longitude,\n  latitude,\n  nuts_id\nFROM weather.ecmwf_eu\nWHERE\n  \"time\" = (SELECT MAX(\"time\") FROM weather.ecmwf WHERE $__timeFilter(\"time\"))\n  \nGROUP BY longitude, latitude, nuts_id\n--, 1\n--ORDER BY 1",
           "refId": "A",
           "select": [
             [
@@ -1336,7 +1426,7 @@
           ],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  --$__timeGroupAlias(\"time\",$__interval),\n  avg(temp_air-273.15) AS \"temp_air\",\n  --avg(ghi/3600) AS \"ghi\",\n  --avg(\"wind_speed\") AS \"wind_speed\",\n  longitude,\n  latitude\nFROM ecmwf.ecmwf\nWHERE\n  \"time\" = (SELECT MAX(\"time\") FROM ecmwf.ecmwf WHERE $__timeFilter(\"time\"))\n  and\n  longitude > 5.5 and longitude < 7 AND\n  latitude > 50 and latitude < 51.3\n  \nGROUP BY longitude, latitude\n--, 1\n--ORDER BY 1",
+          "rawSql": "SELECT\n  --$__timeGroupAlias(\"time\",$__interval),\n  avg(temp_air-273.15) AS \"temp_air\",\n  --avg(ghi/3600) AS \"ghi\",\n  --avg(\"wind_speed\") AS \"wind_speed\",\n  longitude,\n  latitude\nFROM weather.ecmwf\nWHERE\n  \"time\" = (SELECT MAX(\"time\") FROM weather.ecmwf WHERE $__timeFilter(\"time\"))\n  and\n  longitude > 5.5 and longitude < 7 AND\n  latitude > 50 and latitude < 51.3\n  \nGROUP BY longitude, latitude\n--, 1\n--ORDER BY 1",
           "refId": "A",
           "select": [
             [
@@ -1458,7 +1548,23 @@
         "includeAll": false,
         "label": "Weather metrics",
         "name": "metric",
-        "options": [],
+        "options": [
+          {
+            "selected": true,
+            "text": "temp_air",
+            "value": "temp_air"
+          },
+          {
+            "selected": false,
+            "text": "wind_speed",
+            "value": "wind_speed"
+          },
+          {
+            "selected": false,
+            "text": "ghi",
+            "value": "ghi"
+          }
+        ],
         "query": "temp_air, wind_speed, ghi",
         "type": "custom",
         "valuesFormat": "csv"
@@ -1473,6 +1579,6 @@
   "timezone": "browser",
   "title": "Weather Dashboard",
   "uid": "a6ade184-244d-437f-8cad-ff820ce8b380",
-  "version": 2,
+  "version": 1,
   "weekStart": ""
 }

@@ -14,6 +14,7 @@ from oeds.crawler.fernwaerme_preisuebersicht import FWCrawler
 from oeds.crawler.frequency import FrequencyCrawler
 from oeds.crawler.gie_crawler import GieCrawler
 from oeds.crawler.instrat_pl import InstratPlCrawler
+from oeds.crawler.jao_crawler import JaoCrawler
 from oeds.crawler.jrc_idees import JrcIdeesCrawler
 from oeds.crawler.ladesaeulenregister import LadesaeulenregisterCrawler
 from oeds.crawler.londondatastore import LondonLoadData
@@ -21,6 +22,7 @@ from oeds.crawler.mastr import MastrDownloader
 from oeds.crawler.netztransparenz import NetztransparenzCrawler
 from oeds.crawler.ninja import NinjaCrawler
 from oeds.crawler.nuts_mapper import NutsCrawler
+from oeds.crawler.oep import OepCrawler
 from oeds.crawler.opec import OpecDownloader
 from oeds.crawler.opsd import OpsdCrawler
 from oeds.crawler.smard import SmardCrawler
@@ -40,12 +42,14 @@ crawlers: dict[str, type[BaseCrawler]] = {
     "frequency": FrequencyCrawler,
     "gie": GieCrawler,
     "instrat_pl": InstratPlCrawler,
+    "jao": JaoCrawler,
     "jrc_idees": JrcIdeesCrawler,
     "ladesaeulenregister": LadesaeulenregisterCrawler,
     "londondatastore": LondonLoadData,
     "mastr": MastrDownloader,
     "netztransparenz": NetztransparenzCrawler,
     "ninja": NinjaCrawler,
+    "oep": OepCrawler,
     "opec": OpecDownloader,
     "opsd": OpsdCrawler,
     "smard": SmardCrawler,

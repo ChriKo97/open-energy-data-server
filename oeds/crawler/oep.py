@@ -2,6 +2,15 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+"""
+Synthetic data from OpenEGO project.
+
+More information found here:
+https://openenergyplatform.org/database/tables/ego_dp_loadarea
+
+and here: https://github.com/openego/eGon-data
+"""
+
 import logging
 from pathlib import Path
 

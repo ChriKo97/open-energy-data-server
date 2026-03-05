@@ -43,7 +43,7 @@ class OepCrawler(DownloadOnceCrawler):
 
     def crawl_oep(self, oep_ego_file_path=oep_ego_file_path):
         """
-        efficiency of heat pumps in different countries for different types of heatpumps
+        synthetic demand data for German NUTS areas from OpenEGO project
         """
         if oep_ego_file_path.is_file():
             log.info("%s already exists", oep_ego_file_path)
@@ -51,7 +51,7 @@ class OepCrawler(DownloadOnceCrawler):
             oep_ego_file = requests.get(ego_url)
             with open(oep_ego_file_path, "wb") as f:
                 f.write(oep_ego_file.content)
-            log.info("downloaded when2heat.db to %s", oep_ego_file_path)
+            log.info("downloaded ego_demand to %s", oep_ego_file_path)
         demand = pd.read_csv(oep_ego_file_path)
         # delete geometries, as NUTS is available in public already
         demand.drop(

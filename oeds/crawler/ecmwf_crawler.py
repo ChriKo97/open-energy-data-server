@@ -41,11 +41,6 @@ from oeds.base_crawler import (
 
 log = logging.getLogger("ecmwf")
 
-# path of nuts file
-# you can also downloaded it from
-# https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics
-NUTS_PATH = Path(__file__).parent.parent / "shapes/NUTS_RG_01M_2021_4326.geojson"
-NUTS_URL = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_01M_2021_4326.geojson"
 TEMP_DIR = Path(__file__).parent.parent / "ecmwf_grb_files"
 
 # coords for europe according to:
@@ -63,36 +58,41 @@ weather_variables = [
 
 TEMPORAL_START = datetime(2022, 1, 1)
 
+
 def create_table_if_not_exists(engine):
     with engine.begin() as conn:
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS ecmwf( "
-            "time timestamp without time zone NOT NULL, "
-            "latitude double precision, "
-            "longitude double precision, "
-            "temp_air real, "
-            "ghi real, "
-            "wind_meridional real, "
-            "wind_zonal real, "
-            "wind_speed real, "
-            "precipitation real, "
-            "PRIMARY KEY (time , latitude, longitude));"
+            text(
+                "CREATE TABLE IF NOT EXISTS ecmwf( "
+                "time timestamp without time zone NOT NULL, "
+                "latitude double precision, "
+                "longitude double precision, "
+                "temp_air real, "
+                "ghi real, "
+                "wind_meridional real, "
+                "wind_zonal real, "
+                "wind_speed real, "
+                "precipitation real, "
+                "PRIMARY KEY (time , latitude, longitude));"
+            )
         )
 
     with engine.begin() as conn:
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS ecmwf_eu( "
-            "time timestamp without time zone NOT NULL, "
-            "latitude double precision, "
-            "longitude double precision, "
-            "nuts_id text, "
-            "temp_air real, "
-            "ghi real, "
-            "wind_meridional real, "
-            "wind_zonal real, "
-            "wind_speed real, "
-            "precipitation real, "
-            "PRIMARY KEY (time , latitude, longitude, nuts_id));"
+            text(
+                "CREATE TABLE IF NOT EXISTS ecmwf_eu( "
+                "time timestamp without time zone NOT NULL, "
+                "latitude double precision, "
+                "longitude double precision, "
+                "nuts_id text, "
+                "temp_air real, "
+                "ghi real, "
+                "wind_meridional real, "
+                "wind_zonal real, "
+                "wind_speed real, "
+                "precipitation real, "
+                "PRIMARY KEY (time , latitude, longitude, nuts_id));"
+            )
         )
 
 
@@ -119,6 +119,7 @@ def psql_insert_copy(table, conn, keys: list[str], data_iter):
 
         sql = f"COPY {table_name} ({columns}) FROM STDIN WITH CSV"
         cur.copy_expert(sql=sql, file=s_buf)
+
 
 def daterange(start_date: datetime, end_date: datetime = None):
     if not end_date:
@@ -186,7 +187,7 @@ class EcmwfCrawler(ContinuousCrawler):
         create_table_if_not_exists(self.engine)
         self.ecmwf_client = cdsapi.Client()
         TEMP_DIR.mkdir(parents=True, exist_ok=True)
-        
+
         # nuts data must have the public schema configured, otherwise
         # relation "spatial_ref_sys" does not exist
         # is issued
@@ -197,11 +198,14 @@ class EcmwfCrawler(ContinuousCrawler):
         try:
             query = "select nuts_id, geometry from public.nuts"
             with nuts_engine.begin() as conn:
-                nuts = gpd.read_postgis(query, con=conn, geom_col="geometry", index_col="nuts_id")
-                return nuts.loc[:, ["NUTS_ID", "geometry"]].set_index("NUTS_ID")
-        
+                return gpd.read_postgis(
+                    query, con=conn, geom_col="geometry", index_col="nuts_id"
+                )
+
         except Exception as e:
-            raise Exception(f"No NUTS data available - did you run nuts_mapper before? - {e}")
+            raise Exception(
+                "No NUTS data available - did you run nuts_mapper before?"
+            ) from e
 
     def get_latest_data(self) -> datetime:
         query = text("SELECT MAX(time) FROM ecmwf")
@@ -354,7 +358,9 @@ class EcmwfCrawler(ContinuousCrawler):
         # calculate average for all locations inside the current nuts area
         weather_data = weather_data.groupby(["time", "nuts_id"]).mean(numeric_only=True)
         weather_data = weather_data.reset_index()
-        weather_data = weather_data.set_index(["time", "latitude", "longitude", "nuts_id"])
+        weather_data = weather_data.set_index(
+            ["time", "latitude", "longitude", "nuts_id"]
+        )
         log.info(
             "preparing to write nuts dataframe for %s into ecmwf_eu database", filename
         )
@@ -389,11 +395,10 @@ class EcmwfCrawler(ContinuousCrawler):
                 log.error(f"Error removing files: {e}")
 
 
-
 if __name__ == "__main__":
     logging.basicConfig(filename="ecmwf.log", encoding="utf-8", level=logging.INFO)
     from pathlib import Path
 
     config = load_config(DEFAULT_CONFIG_LOCATION)
-    smard = EcmwfCrawler("ecmwf", config=config)
-    smard.crawl_temporal()
+    ecmwf_crawler = EcmwfCrawler("ecmwf", config=config)
+    ecmwf_crawler.crawl_temporal()

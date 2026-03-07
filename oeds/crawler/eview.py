@@ -136,7 +136,7 @@ class EViewCrawler(ContinuousCrawler):
                 self.crawl_from_to(begin, first)
         if not end:
             end = datetime.now()
-        print(latest)
+        log.info("latest date is %s", latest)
         if latest < end - self.__class__.get_minimum_offset():
             # leave begin none to crawl lost data, if it was not available for some parts
             # for this crawler, this selects the latest data per plant automatically

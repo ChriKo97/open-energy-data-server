@@ -80,7 +80,7 @@ class NetztransparenzCrawler(ContinuousCrawler):
         )
 
     def check_health(self):
-        print(self.client.check_health())
+        log.info(self.client.check_health())
 
     def forecast_solar(self):
         df = self.client.prognose_solar(transform_dates=True)

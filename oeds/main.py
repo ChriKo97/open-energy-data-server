@@ -60,7 +60,6 @@ def cli(args=None):
 
     if parsed_args.db:
         config["db_uri"] = parsed_args.db
-    print(config["db_uri"])
 
     for crawler_name in selected_crawlers:
         log.info("Starting crawler: %s", crawler_name)

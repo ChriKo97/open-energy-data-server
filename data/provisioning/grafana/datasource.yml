@@ -17,10 +17,10 @@ datasources:
   type: postgres
   url: open-data-18:5432
   user: opendata
-  database: opendata
   secureJsonData:
     password: opendata
   jsonData:
+    database: opendata
     sslmode: "disable"
     postgresVersion: 1600
     timescaledb: true

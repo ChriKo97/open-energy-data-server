@@ -2,6 +2,15 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+"""
+This crawls the NUTS regions. There are various versions available.
+Changes are available here:
+https://ec.europa.eu/eurostat/web/nuts/history
+
+More information on the avilable download data can be found here:
+https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics
+"""
+
 import io
 import logging
 import zipfile
@@ -16,6 +25,18 @@ from sqlalchemy.exc import ProgrammingError
 from oeds.base_crawler import DEFAULT_CONFIG_LOCATION, DownloadOnceCrawler, load_config
 
 log = logging.getLogger(__name__)
+
+# Download shp zip for EU NUTS here:
+# https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics
+EU_SHP_NUTS_URL = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/shp/NUTS_RG_01M_2024_4326.shp.zip"
+EU_SHP_NUTS_FILENAME = "NUTS_RG_01M_2024_4326.shp"
+
+# https://gisco-services.ec.europa.eu/tercet/flat-files
+# download zip
+EU_DE_ZIP_URL = (
+    "https://gisco-services.ec.europa.eu/tercet/NUTS-2024/pc2025_DE_NUTS-2024_v1.0.zip"
+)
+EU_DE_ZIP_FILENAME = "pc2025_DE_NUTS-2024_v1.0.csv"
 
 
 class NutsCrawler(DownloadOnceCrawler):
@@ -34,16 +55,14 @@ class NutsCrawler(DownloadOnceCrawler):
             log.info("finished downloading NUTS")
 
     def download_nuts(self):
-        # Download shp zip for EU NUTS here:
-        # https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics
-        download_url = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/shp/NUTS_RG_01M_2021_4326.shp.zip"
         # download file
-        r = requests.get(download_url)
+        log.info("download EU NUTS shapefile")
+        r = requests.get(EU_SHP_NUTS_URL)
         z = zipfile.ZipFile(io.BytesIO(r.content))
         # extract to shapes folder
         shapes_path = Path(__file__).parent.parent / "shapes"
         z.extractall(shapes_path)
-        geo_path = shapes_path / "NUTS_RG_01M_2021_4326.shp"
+        geo_path = shapes_path / EU_SHP_NUTS_FILENAME
 
         geo_information = gpd.read_file(geo_path)
         geo_information = geo_information.to_crs(4326)
@@ -64,14 +83,13 @@ class NutsCrawler(DownloadOnceCrawler):
         geo_information["latitude"] = centroids.y
         with self.engine.begin() as conn:
             geo_information.to_postgis("nuts", con=conn, if_exists="replace")
+        log.info("finished writing EU NUTS shapefile")
 
-        # https://gisco-services.ec.europa.eu/tercet/flat-files
-        # download zip
-        download_plz = "https://gisco-services.ec.europa.eu/tercet/NUTS-2021/pc2020_DE_NUTS-2021_v4.0.zip"
-        r = requests.get(download_plz)
+        log.info("download EU DE zipcode list")
+        r = requests.get(EU_DE_ZIP_URL)
         z = zipfile.ZipFile(io.BytesIO(r.content))
-        # open pc2020_DE_NUTS-2021_v4.0.csv with pandas
-        with z.open("pc2020_DE_NUTS-2021_v4.0.csv") as f:
+        # open pc2025_DE_NUTS-2024_v1.0.csv with pandas
+        with z.open(EU_DE_ZIP_FILENAME) as f:
             plz_list = pd.read_csv(f, sep=";", index_col="CODE", quotechar="'")
 
         # remove str literals from plzlist with read_csv
@@ -90,6 +108,7 @@ class NutsCrawler(DownloadOnceCrawler):
         plz_join = plz_join[["nuts1", "nuts2", "nuts3", "longitude", "latitude"]]
         with self.engine.begin() as conn:
             plz_join.to_sql("plz", con=conn, if_exists="replace")
+        log.info("finished writing EU DE zipcode list")
 
 
 if __name__ == "__main__":

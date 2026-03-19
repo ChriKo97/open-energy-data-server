@@ -13,10 +13,9 @@ from pathlib import Path
 import cdsapi
 import geopandas as gpd
 import pandas as pd
-import requests
 import xarray as xr
 from shapely.geometry import Point
-from sqlalchemy import text
+from sqlalchemy import create_engine, text
 
 from oeds.base_crawler import (
     DEFAULT_CONFIG_LOCATION,
@@ -42,11 +41,6 @@ from oeds.base_crawler import (
 
 log = logging.getLogger("ecmwf")
 
-# path of nuts file
-# you can also downloaded it from
-# https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics
-NUTS_PATH = Path(__file__).parent.parent / "shapes/NUTS_RG_01M_2021_4326.geojson"
-NUTS_URL = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_01M_2021_4326.geojson"
 TEMP_DIR = Path(__file__).parent.parent / "ecmwf_grb_files"
 
 # coords for europe according to:
@@ -65,53 +59,40 @@ weather_variables = [
 TEMPORAL_START = datetime(2022, 1, 1)
 
 
-def get_nuts_geodataframe() -> gpd.GeoDataFrame:
-    """Downloads NUTS regions GeoJSON from GISCO API if not cached locally.
-
-    Returns a GeoDataFrame with NUTS_ID and geometry columns.
-    """
-    if not NUTS_PATH.exists():
-        log.info("Downloading NUTS shapefile from GISCO API...")
-        response = requests.get(NUTS_URL)
-        response.raise_for_status()
-        NUTS_PATH.write_bytes(response.content)
-        log.info(f"NUTS GeoJSON saved to {NUTS_PATH}")
-
-    nuts = gpd.read_file(NUTS_PATH)
-    # use only nuts_id and coordinates from nuts file so fewer columns have to be joined
-    return nuts.loc[:, ["NUTS_ID", "geometry"]].set_index("NUTS_ID")
-
-
 def create_table_if_not_exists(engine):
     with engine.begin() as conn:
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS ecmwf( "
-            "time timestamp without time zone NOT NULL, "
-            "latitude double precision, "
-            "longitude double precision, "
-            "temp_air real, "
-            "ghi real, "
-            "wind_meridional real, "
-            "wind_zonal real, "
-            "wind_speed real, "
-            "precipitation real, "
-            "PRIMARY KEY (time , latitude, longitude));"
+            text(
+                "CREATE TABLE IF NOT EXISTS ecmwf( "
+                "time timestamp without time zone NOT NULL, "
+                "latitude double precision, "
+                "longitude double precision, "
+                "temp_air real, "
+                "ghi real, "
+                "wind_meridional real, "
+                "wind_zonal real, "
+                "wind_speed real, "
+                "precipitation real, "
+                "PRIMARY KEY (time , latitude, longitude));"
+            )
         )
 
     with engine.begin() as conn:
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS ecmwf_eu( "
-            "time timestamp without time zone NOT NULL, "
-            "latitude double precision, "
-            "longitude double precision, "
-            "nuts_id text, "
-            "temp_air real, "
-            "ghi real, "
-            "wind_meridional real, "
-            "wind_zonal real, "
-            "wind_speed real, "
-            "precipitation real, "
-            "PRIMARY KEY (time , latitude, longitude, nuts_id));"
+            text(
+                "CREATE TABLE IF NOT EXISTS ecmwf_eu( "
+                "time timestamp without time zone NOT NULL, "
+                "latitude double precision, "
+                "longitude double precision, "
+                "nuts_id text, "
+                "temp_air real, "
+                "ghi real, "
+                "wind_meridional real, "
+                "wind_zonal real, "
+                "wind_speed real, "
+                "precipitation real, "
+                "PRIMARY KEY (time , latitude, longitude, nuts_id));"
+            )
         )
 
 
@@ -138,127 +119,6 @@ def psql_insert_copy(table, conn, keys: list[str], data_iter):
 
         sql = f"COPY {table_name} ({columns}) FROM STDIN WITH CSV"
         cur.copy_expert(sql=sql, file=s_buf)
-
-
-def build_dataframe(engine, request: dict, write_lat_lon: bool = True):
-    filename = f"{request['year']}_{request['month']}_{request['day'][0]}-{request['month']}_{request['day'][-1]}_ecmwf.zip"
-    file_path = TEMP_DIR / filename
-    filename = "2022_01_0-01_1_ecmwf.grb"
-
-    if zipfile.is_zipfile(file_path):
-        # log.info("extracting zipfile %s", file_path)
-        with zipfile.ZipFile(file_path) as z_file:
-            z_file.extractall(TEMP_DIR / (filename + ".dir"))
-        file = TEMP_DIR / (filename + ".dir") / "data.grib"
-        weather_data = xr.open_dataset(file, engine="cfgrib")
-    else:
-        weather_data = xr.open_dataset(file_path, engine="cfgrib", indexpath="")
-    log.info(f"successfully read file {file_path}")
-    weather_data = weather_data.to_dataframe()
-    weather_data = weather_data.dropna(axis=0)
-    weather_data = weather_data.reset_index()
-    weather_data = weather_data.drop(
-        ["time", "step", "number", "surface"], axis="columns"
-    )
-    weather_data = weather_data.rename(
-        columns={
-            "valid_time": "time",
-            "u10": "wind_zonal",
-            "v10": "wind_meridional",
-            "t2m": "temp_air",
-            "ssr": "ghi",
-            "tp": "precipitation",
-        }
-    )
-    # calculate wind speed from zonal and meridional wind
-    weather_data["wind_speed"] = (
-        weather_data["wind_zonal"] ** 2 + weather_data["wind_meridional"] ** 2
-    ) ** 0.5
-    weather_data = weather_data.round({"latitude": 2, "longitude": 2})
-    # columns ghi ist accumulated over 24 hours, so use difference to get hourly values
-    # first we need to order by time and location and then calculate the difference
-    weather_data = weather_data.sort_values(by=["latitude", "longitude", "time"])
-    weather_data["ghi"] = weather_data["ghi"].diff()
-    # set negatives to 0
-    weather_data["ghi"] = weather_data["ghi"].clip(lower=0)
-    # nan to 0
-    weather_data["ghi"] = weather_data["ghi"].fillna(0)
-    # set ghi at 00:00 to 0
-    weather_data.loc[weather_data["time"].dt.hour == 0, "ghi"] = 0
-    weather_data = weather_data.set_index(["time", "latitude", "longitude"])
-
-    log.info("preparing to write dataframe into ecmwf database")
-    # write to database
-    if write_lat_lon:
-        try:
-            weather_data.to_sql(
-                "ecmwf",
-                con=engine,
-                if_exists="append",
-                chunksize=10000,
-                method=psql_insert_copy,
-            )
-        except Exception:
-            log.error(
-                "no postgresql? - could not write using psql_insert_copy - using multi method"
-            )
-            weather_data.to_sql(
-                "ecmwf",
-                con=engine,
-                if_exists="append",
-                chunksize=10000,
-            )
-
-    nuts3 = get_nuts_geodataframe()
-    weather_data = weather_data.reset_index()
-    weather_data["coords"] = list(
-        zip(weather_data["longitude"], weather_data["latitude"])
-    )
-    weather_data["coords"] = weather_data["coords"].apply(Point)
-    weather_data = gpd.GeoDataFrame(weather_data, geometry="coords", crs=nuts3.crs)
-    # join weather data to nuts areas
-    weather_data = gpd.sjoin(weather_data, nuts3, predicate="within", how="left")
-    weather_data = pd.DataFrame(weather_data)
-    # coords columns only necessary for the join
-    weather_data = weather_data.drop(columns="coords")
-    weather_data = weather_data.rename(columns={"NUTS_ID": "nuts_id"})
-    weather_data = weather_data.dropna(axis=0)
-    # calculate average for all locations inside the current nuts area
-    weather_data = weather_data.groupby(["time", "nuts_id"]).mean(numeric_only=True)
-    weather_data = weather_data.reset_index()
-    weather_data = weather_data.set_index(["time", "latitude", "longitude", "nuts_id"])
-    log.info(
-        "preparing to write nuts dataframe for %s into ecmwf_eu database", filename
-    )
-    try:
-        weather_data.to_sql(
-            "ecmwf_eu",
-            con=engine,
-            if_exists="append",
-            chunksize=10000,
-            method=psql_insert_copy,
-        )
-    except Exception:
-        log.error(
-            "no postgresql? - could not write using psql_insert_copy - using multi method"
-        )
-        weather_data.to_sql(
-            "ecmwf_eu",
-            con=engine,
-            if_exists="append",
-            chunksize=10000,
-        )
-
-    # Delete files locally to save space
-    for file in Path(file_path.parent).rglob(file_path.name + "*"):
-        try:
-            if file.is_dir():
-                shutil.rmtree(file)
-            else:
-                file.unlink()
-            log.info("removed file %s", file)
-        except OSError as e:
-            log.error(f"Error removing files: {e}")
 
 
 def daterange(start_date: datetime, end_date: datetime = None):
@@ -328,6 +188,25 @@ class EcmwfCrawler(ContinuousCrawler):
         self.ecmwf_client = cdsapi.Client()
         TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
+        # nuts data must have the public schema configured, otherwise
+        # relation "spatial_ref_sys" does not exist
+        # is issued
+        self.nuts_data = self.get_nuts_data(config["db_uri"].format(DBNAME="public"))
+
+    def get_nuts_data(self, db_uri: str):
+        nuts_engine = create_engine(db_uri)
+        try:
+            query = "select nuts_id, geometry from public.nuts"
+            with nuts_engine.begin() as conn:
+                return gpd.read_postgis(
+                    query, con=conn, geom_col="geometry", index_col="nuts_id"
+                )
+
+        except Exception as e:
+            raise Exception(
+                "No NUTS data available - did you run nuts_mapper before?"
+            ) from e
+
     def get_latest_data(self) -> datetime:
         query = text("SELECT MAX(time) FROM ecmwf")
         try:
@@ -381,7 +260,7 @@ class EcmwfCrawler(ContinuousCrawler):
             request = single_day_request(begin)
             log.info(f"The current request running: {request}")
             save_ecmwf_request_to_file(request, self.ecmwf_client)
-            build_dataframe(self.engine, request)
+            self.build_dataframe(request)
             begin = self.get_latest_data()
 
         dates = []
@@ -391,7 +270,129 @@ class EcmwfCrawler(ContinuousCrawler):
         for request in request_list_from_dates(dates):
             log.info(f"The current request running: {request}")
             save_ecmwf_request_to_file(request, self.ecmwf_client)
-            build_dataframe(self.engine, request)
+            self.build_dataframe(request)
+
+    def build_dataframe(self, request: dict, write_lat_lon: bool = True):
+        filename = f"{request['year']}_{request['month']}_{request['day'][0]}-{request['month']}_{request['day'][-1]}_ecmwf.zip"
+        file_path = TEMP_DIR / filename
+        filename = "2022_01_0-01_1_ecmwf.grb"
+
+        if zipfile.is_zipfile(file_path):
+            # log.info("extracting zipfile %s", file_path)
+            with zipfile.ZipFile(file_path) as z_file:
+                z_file.extractall(TEMP_DIR / (filename + ".dir"))
+            file = TEMP_DIR / (filename + ".dir") / "data.grib"
+            weather_data = xr.open_dataset(file, engine="cfgrib")
+        else:
+            weather_data = xr.open_dataset(file_path, engine="cfgrib", indexpath="")
+        log.info(f"successfully read file {file_path}")
+        weather_data = weather_data.to_dataframe()
+        weather_data = weather_data.dropna(axis=0)
+        weather_data = weather_data.reset_index()
+        weather_data = weather_data.drop(
+            ["time", "step", "number", "surface"], axis="columns"
+        )
+        weather_data = weather_data.rename(
+            columns={
+                "valid_time": "time",
+                "u10": "wind_zonal",
+                "v10": "wind_meridional",
+                "t2m": "temp_air",
+                "ssr": "ghi",
+                "tp": "precipitation",
+            }
+        )
+        # calculate wind speed from zonal and meridional wind
+        weather_data["wind_speed"] = (
+            weather_data["wind_zonal"] ** 2 + weather_data["wind_meridional"] ** 2
+        ) ** 0.5
+        weather_data = weather_data.round({"latitude": 2, "longitude": 2})
+        # columns ghi ist accumulated over 24 hours, so use difference to get hourly values
+        # first we need to order by time and location and then calculate the difference
+        weather_data = weather_data.sort_values(by=["latitude", "longitude", "time"])
+        weather_data["ghi"] = weather_data["ghi"].diff()
+        # set negatives to 0
+        weather_data["ghi"] = weather_data["ghi"].clip(lower=0)
+        # nan to 0
+        weather_data["ghi"] = weather_data["ghi"].fillna(0)
+        # set ghi at 00:00 to 0
+        weather_data.loc[weather_data["time"].dt.hour == 0, "ghi"] = 0
+        weather_data = weather_data.set_index(["time", "latitude", "longitude"])
+
+        log.info("preparing to write dataframe into ecmwf database")
+        # write to database
+        if write_lat_lon:
+            try:
+                weather_data.to_sql(
+                    "ecmwf",
+                    con=self.engine,
+                    if_exists="append",
+                    chunksize=10000,
+                    method=psql_insert_copy,
+                )
+            except Exception:
+                log.error(
+                    "no postgresql? - could not write using psql_insert_copy - using multi method"
+                )
+                weather_data.to_sql(
+                    "ecmwf",
+                    con=self.engine,
+                    if_exists="append",
+                    chunksize=10000,
+                )
+
+        nuts3 = self.nuts_data
+        weather_data = weather_data.reset_index()
+        weather_data["coords"] = list(
+            zip(weather_data["longitude"], weather_data["latitude"])
+        )
+        weather_data["coords"] = weather_data["coords"].apply(Point)
+        weather_data = gpd.GeoDataFrame(weather_data, geometry="coords", crs=nuts3.crs)
+        # join weather data to nuts areas
+        weather_data = gpd.sjoin(weather_data, nuts3, predicate="within", how="left")
+        weather_data = pd.DataFrame(weather_data)
+        # coords columns only necessary for the join
+        weather_data = weather_data.drop(columns="coords")
+        weather_data = weather_data.rename(columns={"NUTS_ID": "nuts_id"})
+        weather_data = weather_data.dropna(axis=0)
+        # calculate average for all locations inside the current nuts area
+        weather_data = weather_data.groupby(["time", "nuts_id"]).mean(numeric_only=True)
+        weather_data = weather_data.reset_index()
+        weather_data = weather_data.set_index(
+            ["time", "latitude", "longitude", "nuts_id"]
+        )
+        log.info(
+            "preparing to write nuts dataframe for %s into ecmwf_eu database", filename
+        )
+        try:
+            weather_data.to_sql(
+                "ecmwf_eu",
+                con=self.engine,
+                if_exists="append",
+                chunksize=10000,
+                method=psql_insert_copy,
+            )
+        except Exception:
+            log.error(
+                "no postgresql? - could not write using psql_insert_copy - using multi method"
+            )
+            weather_data.to_sql(
+                "ecmwf_eu",
+                con=self.engine,
+                if_exists="append",
+                chunksize=10000,
+            )
+
+        # Delete files locally to save space
+        for file in Path(file_path.parent).rglob(file_path.name + "*"):
+            try:
+                if file.is_dir():
+                    shutil.rmtree(file)
+                else:
+                    file.unlink()
+                log.info("removed file %s", file)
+            except OSError as e:
+                log.error(f"Error removing files: {e}")
 
 
 if __name__ == "__main__":
@@ -399,5 +400,5 @@ if __name__ == "__main__":
     from pathlib import Path
 
     config = load_config(DEFAULT_CONFIG_LOCATION)
-    smard = EcmwfCrawler("ecmwf", config=config)
-    smard.crawl_temporal()
+    ecmwf_crawler = EcmwfCrawler("ecmwf", config=config)
+    ecmwf_crawler.crawl_temporal()

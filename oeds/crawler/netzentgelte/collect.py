@@ -20,14 +20,23 @@ tested against saved text excerpts (see tests/).
 
 from __future__ import annotations
 
-import importlib
 import io
 import logging
 from pathlib import Path
 
+import pdfplumber
 import requests
 import yaml
 
+from .adapters import (
+    enexis_heerlen,
+    leitungspartner,
+    regionetz,
+    resa_luettich,
+    rheinnetz,
+    stadtwerke_juelich,
+    stromnetz_berlin,
+)
 from .fetch_uebertragungsnetz import DEFAULT_UENB_PDF_URL, fetch_uenb_entries
 from .schema import NetzentgeltEintrag
 
@@ -37,10 +46,22 @@ log = logging.getLogger("netzentgelte")
 # manually per year or when adding new cities (see file comment there).
 DEFAULT_CITIES_YAML = Path(__file__).parent / "cities.yaml"
 
+# Static mapping from the ``adapter`` name in cities.yaml to its parse function.
+# One small, verified parser per distribution operator - there is deliberately
+# no universal parser (every operator uses its own price sheet layout). New
+# operators are added here together with their adapter module.
+ADAPTERS = {
+    "enexis_heerlen": enexis_heerlen.parse,
+    "leitungspartner": leitungspartner.parse,
+    "regionetz": regionetz.parse,
+    "resa_luettich": resa_luettich.parse,
+    "rheinnetz": rheinnetz.parse,
+    "stadtwerke_juelich": stadtwerke_juelich.parse,
+    "stromnetz_berlin": stromnetz_berlin.parse,
+}
+
 
 def _download_pdf_text(url: str) -> str:
-    import pdfplumber
-
     resp = requests.get(
         url, timeout=30, headers={"User-Agent": "open-energy-data-server/netzentgelte"}
     )
@@ -94,6 +115,15 @@ def collect_entries(
             log.warning(warnings[-1])
             continue
 
+        parse = ADAPTERS.get(adapter_name)
+        if parse is None:
+            warnings.append(
+                f"{name} ({vnb}): unknown adapter '{adapter_name}' - "
+                f"not registered in ADAPTERS."
+            )
+            log.warning(warnings[-1])
+            continue
+
         try:
             text = _download_pdf_text(url)
         except Exception as exc:
@@ -102,10 +132,7 @@ def collect_entries(
             continue
 
         try:
-            mod = importlib.import_module(
-                f".adapters.{adapter_name}", package=__package__
-            )
-            entries = mod.parse(text, stadt=name, jahr=jahr, quelle_url=url)
+            entries = parse(text, stadt=name, jahr=jahr, quelle_url=url)
             all_entries.extend(entries)
             log.info("%s (%s): %d entries", name, vnb, len(entries))
         except Exception as exc:

@@ -16,10 +16,10 @@ October, final in early December for the following year).
 """
 from __future__ import annotations
 
+import io
 import re
-from dataclasses import dataclass
-from typing import Optional
 
+import pdfplumber
 import requests
 
 from .schema import NetzentgeltEintrag
@@ -125,9 +125,6 @@ def fetch_uenb_entries(jahr: int, pdf_url: str = DEFAULT_UENB_PDF_URL) -> list[N
     """Download the current transmission price sheet and parse it. Requires real
     internet access (does not work in this repo's sandbox, but on a normal
     machine/CI runner with internet access)."""
-    import io
-    import pdfplumber
-
     resp = requests.get(pdf_url, timeout=30)
     resp.raise_for_status()
     text_parts = []

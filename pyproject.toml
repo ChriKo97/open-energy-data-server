@@ -35,6 +35,7 @@ dependencies = [
     "pandas >=2.0.0",
     "pyyaml >=6.0.2",
     "open-mastr >=0.15.0",
+    "beautifulsoup4 >= 4.15.0",
 ]
 
 [project.scripts]

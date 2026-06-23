@@ -30,7 +30,6 @@ German cities is therefore only of limited use.
 Verified against: enexis.nl, tariff sheet "Elektriciteit | Kleinverbruik",
 Netbeheerkosten 1 januari 2026, Versie 1.0.
 """
-
 from __future__ import annotations
 
 import re
@@ -41,9 +40,7 @@ from . import _common as c
 NETZBETREIBER = "Enexis Netbeheer B.V."
 
 
-def parse(
-    text: str, stadt: str, jahr: int, quelle_url: str
-) -> list[NetzentgeltEintrag]:
+def parse(text: str, stadt: str, jahr: int, quelle_url: str) -> list[NetzentgeltEintrag]:
     out: list[NetzentgeltEintrag] = []
     m = re.search(r"Versie\s+([\d.]+)", text)
     stand = f"Versie {m.group(1)}" if m else None
@@ -51,32 +48,20 @@ def parse(
     # Table "Aansluiting met elektriciteitsmeter": per connection size
     # Per dag / Per maand / Per jaar (incl. btw). We use the standard household
     # connection 3 x 25 A and take the annual amount (last number).
-    sec = c.slice_between(
-        text, "Aansluiting met elektriciteitsmeter", "Aansluiting zonder"
-    )
+    sec = c.slice_between(text, "Aansluiting met elektriciteitsmeter", "Aansluiting zonder")
     for line in sec.splitlines():
         if re.search(r"3\s*[\u00d7x]\s*25", line):  # "3 x 25" or "3 × 25"
             nums = c.decimals(line)
             if nums:
-                out.append(
-                    NetzentgeltEintrag(
-                        stadt=stadt,
-                        netzbetreiber=NETZBETREIBER,
-                        netzbetreiber_typ="Verteilnetz",
-                        netzebene="Niederspannung",
-                        tarifsystem="Grundpreis_Arbeitspreis",
-                        benutzungsdauer_klasse=None,
-                        grundpreis_eur_jahr=nums[-1],
-                        arbeitspreis_ct_kwh=None,
-                        leistungspreis_eur_kw_jahr=None,
-                        leistungspreis_eur_kw_monat=None,
-                        jahr=jahr,
-                        stand_dokument=stand,
-                        quelle_url=quelle_url,
-                        netto_oder_brutto="brutto",
-                        mwst_prozent=21.0,
-                    )
-                )
+                out.append(NetzentgeltEintrag(
+                    stadt=stadt, netzbetreiber=NETZBETREIBER, netzbetreiber_typ="Verteilnetz",
+                    netzebene="Niederspannung", tarifsystem="Grundpreis_Arbeitspreis",
+                    benutzungsdauer_klasse=None,
+                    grundpreis_eur_jahr=nums[-1], arbeitspreis_ct_kwh=None,
+                    leistungspreis_eur_kw_jahr=None, leistungspreis_eur_kw_monat=None,
+                    jahr=jahr, stand_dokument=stand, quelle_url=quelle_url,
+                    netto_oder_brutto="brutto", mwst_prozent=21.0,
+                ))
             break
 
     return out

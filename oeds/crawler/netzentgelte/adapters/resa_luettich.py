@@ -32,7 +32,6 @@ reads the row of operator RESA specifically.
 Verified against: cwape.be, "Synthèse des tarifs de distribution élec 2026 (FR)",
 valid 01.01.2026-31.12.2026.
 """
-
 from __future__ import annotations
 
 import re
@@ -43,9 +42,7 @@ from . import _common as c
 NETZBETREIBER = "RESA SA"
 
 
-def parse(
-    text: str, stadt: str, jahr: int, quelle_url: str
-) -> list[NetzentgeltEintrag]:
+def parse(text: str, stadt: str, jahr: int, quelle_url: str) -> list[NetzentgeltEintrag]:
     out: list[NetzentgeltEintrag] = []
     m = re.search(r"Mise à jour du\s+([\d.]+)", text)
     stand = m.group(1) if m else None
@@ -58,25 +55,15 @@ def parse(
         if s.startswith("RESA ") and not s.startswith("RÉSEAU"):
             nums = c.decimals(line)
             if len(nums) >= 2:
-                out.append(
-                    NetzentgeltEintrag(
-                        stadt=stadt,
-                        netzbetreiber=NETZBETREIBER,
-                        netzbetreiber_typ="Verteilnetz",
-                        netzebene="Niederspannung",
-                        tarifsystem="Grundpreis_Arbeitspreis",
-                        benutzungsdauer_klasse=None,
-                        grundpreis_eur_jahr=nums[0],
-                        arbeitspreis_ct_kwh=nums[1],
-                        leistungspreis_eur_kw_jahr=None,
-                        leistungspreis_eur_kw_monat=None,
-                        jahr=jahr,
-                        stand_dokument=stand,
-                        quelle_url=quelle_url,
-                        netto_oder_brutto="brutto",
-                        mwst_prozent=6.0,
-                    )
-                )
+                out.append(NetzentgeltEintrag(
+                    stadt=stadt, netzbetreiber=NETZBETREIBER, netzbetreiber_typ="Verteilnetz",
+                    netzebene="Niederspannung", tarifsystem="Grundpreis_Arbeitspreis",
+                    benutzungsdauer_klasse=None,
+                    grundpreis_eur_jahr=nums[0], arbeitspreis_ct_kwh=nums[1],
+                    leistungspreis_eur_kw_jahr=None, leistungspreis_eur_kw_monat=None,
+                    jahr=jahr, stand_dokument=stand, quelle_url=quelle_url,
+                    netto_oder_brutto="brutto", mwst_prozent=6.0,
+                ))
             break
 
     return out

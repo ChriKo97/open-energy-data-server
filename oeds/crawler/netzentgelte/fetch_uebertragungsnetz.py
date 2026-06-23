@@ -14,10 +14,11 @@ Source: https://www.netztransparenz.de (section "Netzentgelte")
 The PDF is typically republished once per year (provisional around early
 October, final in early December for the following year).
 """
-
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
+from typing import Optional
 
 import requests
 
@@ -69,46 +70,26 @@ def parse_uenb_text(text: str, jahr: int, quelle_url: str) -> list[NetzentgeltEi
             continue
         seen_jlp.add(bezeichnung)
         ap_klein, lp_klein, ap_gross, lp_gross = (
-            _de_float(m.group(2)),
-            _de_float(m.group(3)),
-            _de_float(m.group(4)),
-            _de_float(m.group(5)),
+            _de_float(m.group(2)), _de_float(m.group(3)),
+            _de_float(m.group(4)), _de_float(m.group(5)),
         )
         netzebene = netzebene_map[bezeichnung]
-        out.append(
-            NetzentgeltEintrag(
-                stadt="(bundeseinheitlich)",
-                netzbetreiber="ÜNB (50Hertz/Amprion/TenneT/TransnetBW)",
-                netzbetreiber_typ="Uebertragungsnetz",
-                netzebene=netzebene,
-                tarifsystem="Jahresleistungspreis",
-                benutzungsdauer_klasse="<2500h",
-                grundpreis_eur_jahr=None,
-                arbeitspreis_ct_kwh=ap_klein,
-                leistungspreis_eur_kw_jahr=lp_klein,
-                leistungspreis_eur_kw_monat=None,
-                jahr=jahr,
-                stand_dokument=stand,
-                quelle_url=quelle_url,
-            )
-        )
-        out.append(
-            NetzentgeltEintrag(
-                stadt="(bundeseinheitlich)",
-                netzbetreiber="ÜNB (50Hertz/Amprion/TenneT/TransnetBW)",
-                netzbetreiber_typ="Uebertragungsnetz",
-                netzebene=netzebene,
-                tarifsystem="Jahresleistungspreis",
-                benutzungsdauer_klasse=">=2500h",
-                grundpreis_eur_jahr=None,
-                arbeitspreis_ct_kwh=ap_gross,
-                leistungspreis_eur_kw_jahr=lp_gross,
-                leistungspreis_eur_kw_monat=None,
-                jahr=jahr,
-                stand_dokument=stand,
-                quelle_url=quelle_url,
-            )
-        )
+        out.append(NetzentgeltEintrag(
+            stadt="(bundeseinheitlich)", netzbetreiber="ÜNB (50Hertz/Amprion/TenneT/TransnetBW)",
+            netzbetreiber_typ="Uebertragungsnetz", netzebene=netzebene,
+            tarifsystem="Jahresleistungspreis", benutzungsdauer_klasse="<2500h",
+            grundpreis_eur_jahr=None, arbeitspreis_ct_kwh=ap_klein,
+            leistungspreis_eur_kw_jahr=lp_klein, leistungspreis_eur_kw_monat=None,
+            jahr=jahr, stand_dokument=stand, quelle_url=quelle_url,
+        ))
+        out.append(NetzentgeltEintrag(
+            stadt="(bundeseinheitlich)", netzbetreiber="ÜNB (50Hertz/Amprion/TenneT/TransnetBW)",
+            netzbetreiber_typ="Uebertragungsnetz", netzebene=netzebene,
+            tarifsystem="Jahresleistungspreis", benutzungsdauer_klasse=">=2500h",
+            grundpreis_eur_jahr=None, arbeitspreis_ct_kwh=ap_gross,
+            leistungspreis_eur_kw_jahr=lp_gross, leistungspreis_eur_kw_monat=None,
+            jahr=jahr, stand_dokument=stand, quelle_url=quelle_url,
+        ))
 
     # Monthly capacity price system row, e.g.: "Höchstspannung (HÖS) 8,84 0,69"
     mlp_pattern = re.compile(
@@ -122,41 +103,29 @@ def parse_uenb_text(text: str, jahr: int, quelle_url: str) -> list[NetzentgeltEi
             continue
         # This regex also matches parts of the JLP row; only accept when
         # NOT followed directly by 4 numbers (otherwise it is the JLP row).
-        tail = text[m.end() : m.end() + 20]
+        tail = text[m.end():m.end() + 20]
         if re.match(r"\s*" + NUM, tail):
             continue
         seen_mlp.add(key)
         lp, ap = _de_float(m.group(2)), _de_float(m.group(3))
         netzebene = netzebene_map[bezeichnung]
-        out.append(
-            NetzentgeltEintrag(
-                stadt="(bundeseinheitlich)",
-                netzbetreiber="ÜNB (50Hertz/Amprion/TenneT/TransnetBW)",
-                netzbetreiber_typ="Uebertragungsnetz",
-                netzebene=netzebene,
-                tarifsystem="Monatsleistungspreis",
-                benutzungsdauer_klasse=None,
-                grundpreis_eur_jahr=None,
-                arbeitspreis_ct_kwh=ap,
-                leistungspreis_eur_kw_jahr=None,
-                leistungspreis_eur_kw_monat=lp,
-                jahr=jahr,
-                stand_dokument=stand,
-                quelle_url=quelle_url,
-            )
-        )
+        out.append(NetzentgeltEintrag(
+            stadt="(bundeseinheitlich)", netzbetreiber="ÜNB (50Hertz/Amprion/TenneT/TransnetBW)",
+            netzbetreiber_typ="Uebertragungsnetz", netzebene=netzebene,
+            tarifsystem="Monatsleistungspreis", benutzungsdauer_klasse=None,
+            grundpreis_eur_jahr=None, arbeitspreis_ct_kwh=ap,
+            leistungspreis_eur_kw_jahr=None, leistungspreis_eur_kw_monat=lp,
+            jahr=jahr, stand_dokument=stand, quelle_url=quelle_url,
+        ))
 
     return out
 
 
-def fetch_uenb_entries(
-    jahr: int, pdf_url: str = DEFAULT_UENB_PDF_URL
-) -> list[NetzentgeltEintrag]:
+def fetch_uenb_entries(jahr: int, pdf_url: str = DEFAULT_UENB_PDF_URL) -> list[NetzentgeltEintrag]:
     """Download the current transmission price sheet and parse it. Requires real
     internet access (does not work in this repo's sandbox, but on a normal
     machine/CI runner with internet access)."""
     import io
-
     import pdfplumber
 
     resp = requests.get(pdf_url, timeout=30)

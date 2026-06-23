@@ -18,7 +18,6 @@ here:
 This module starts with "_" and is therefore NOT loaded as an adapter by the
 pipeline.
 """
-
 from __future__ import annotations
 
 import re
